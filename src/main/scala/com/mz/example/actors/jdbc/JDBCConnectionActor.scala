@@ -1,6 +1,6 @@
 package com.mz.example.actors.jdbc
 
-import java.sql.{Statement, SQLException, Connection}
+import java.sql.{ResultSet, Statement, SQLException, Connection}
 import akka.actor._
 import akka.util.Timeout
 import scala.concurrent.{Promise, Future}
@@ -26,6 +26,8 @@ class JDBCConnectionActor(dataSourceRef: ActorRef) extends Actor with ActorLoggi
 
   var connection: Option[Connection] = None
 
+  var retryConnectionAttempt = 7
+
   @throws[RuntimeException](classOf[RuntimeException])
   override def preStart(): Unit = {
     log.info("init of Actor")
@@ -36,26 +38,30 @@ class JDBCConnectionActor(dataSourceRef: ActorRef) extends Actor with ActorLoggi
         context.become(connectionReady)
       }
       case Failure(f) => {
-        throw new RuntimeException(f)
+        log.error(f, f.getMessage)
+        throw f
       }
     }
   }
 
   override def receive: Receive = {
-    case opr:Insert => connectionNotReady(opr)
-    case opr:Update => connectionNotReady(opr)
-    case opr:Delete => connectionNotReady(opr)
-    case opr:Select => connectionNotReady(opr)
-    case _ => {
-      log.warning("Unsupported operation")
+    case opr:Insert => connectionNotReady(opr, sender)
+    case opr:Update => connectionNotReady(opr, sender)
+    case opr:Delete => connectionNotReady(opr, sender)
+    case Select(query, mapper) => connectionNotReady(Select(query, mapper), sender)
+    case RetryOperation(opr, orgSender) => connectionNotReady(opr, orgSender)
+    case UnsupportedOperation => log.debug(s"Receive => sender sent UnsupportedOperation $sender")
+    case obj:Any => {
+      log.warning(s"receive => Unsupported operation object ${obj.getClass}")
       sender() ! UnsupportedOperation
     }
   }
 
-  private def connectionNotReady(opr: Any): Unit = {
-    log.info("Connection is not jet ready!")
+  private def connectionNotReady(opr: Any, orgSender: ActorRef): Unit = {
+    log.info(s"Connection is not jet ready! Attempt for getting of connection $retryConnectionAttempt")
+    retryConnectionAttempt -= 1
     context.system.scheduler.scheduleOnce(
-      150.millisecond, self, RetryOperation(opr, sender()))
+      150.millisecond, self, RetryOperation(opr, orgSender))
   }
 
   private def connectionReady: Receive = {
@@ -63,16 +69,17 @@ class JDBCConnectionActor(dataSourceRef: ActorRef) extends Actor with ActorLoggi
       case Insert(query) => insert(query) pipeTo senderOrg
       case Update(query) => update(query) pipeTo senderOrg
       case Delete(query) => delete(query) pipeTo senderOrg
-      case Select(query) => select(query) pipeTo senderOrg
+      case Select(query, mapper) => select(query, mapper) pipeTo senderOrg
     }
     case Insert(query) => insert(query) pipeTo sender
     case Update(query) => update(query) pipeTo sender
     case Delete(query) => delete(query) pipeTo sender
-    case Select(query) => select(query) pipeTo sender
+    case Select(query, mapper) => select(query, mapper) pipeTo sender
     case Commit => commit
     case Rollback => rollback
-    case _ => {
-      log.warning("Unsupported operation")
+    case UnsupportedOperation => log.debug(s"sender sent UnsupportedOperation $sender")
+    case obj:Any => {
+      log.warning(s"connectionReady => Unsupported operation object ${obj.getClass}")
       sender() ! UnsupportedOperation
     }
   }
@@ -82,14 +89,14 @@ class JDBCConnectionActor(dataSourceRef: ActorRef) extends Actor with ActorLoggi
    * @param query
    * @return
    */
-  private def select(query: String): Future[SelectResult] = {
-    val p = Promise[SelectResult]
+  private def select[E](query: String, mapper: ResultSet => E): Future[SelectResult[E]] = {
+    val p = Promise[SelectResult[E]]
     Future {
       connection.map(con => {
-        log.info("Update")
+        log.info(s"Select query = $query")
         val prtStatement = con.prepareStatement(query)
         try {
-          val result = SelectResult(prtStatement.executeQuery())
+          val result = SelectResult(mapper(prtStatement.executeQuery()))
           p.success(result)
         } catch {
           case e:SQLException =>  {
@@ -113,7 +120,7 @@ class JDBCConnectionActor(dataSourceRef: ActorRef) extends Actor with ActorLoggi
     val p = Promise[Boolean]
     Future {
       connection.map(con => {
-        log.info("Delete")
+        log.info(s"Delete query = $query")
         executeUpdate(query, p, con)
       })
     }
@@ -129,7 +136,7 @@ class JDBCConnectionActor(dataSourceRef: ActorRef) extends Actor with ActorLoggi
     val p = Promise[Boolean]
     Future {
       connection.map(con => {
-        log.info("Update")
+        log.info(s"Update query = $query")
         val prtStatement = con.prepareStatement(query)
         try {
           prtStatement.executeUpdate()
@@ -156,15 +163,21 @@ class JDBCConnectionActor(dataSourceRef: ActorRef) extends Actor with ActorLoggi
     val p = Promise[GeneratedKeyRes]
     Future {
       connection.map(con => {
-        log.info("Insert")
+        log.info(s"Insert query = $query")
         val prtStatement = con.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)
         try {
           prtStatement.executeUpdate()
           val keys = prtStatement.getGeneratedKeys
           if (keys.next) {
+            log.debug("inserted successful!")
             p.success(GeneratedKeyRes(keys.getLong(1)))
           } else {
             p.success(GeneratedKeyRes(0))
+          }
+        } catch {
+          case e: SQLException => {
+            log.error(e, e.getMessage)
+            throw e
           }
         } finally {
           prtStatement.close

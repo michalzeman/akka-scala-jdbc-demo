@@ -13,7 +13,7 @@ import scala.concurrent._
 /**
  * Created by zemo on 05/10/15.
  */
-class DataSourceActorTest extends TestKit(ActorSystem("test-jdbc-demo"))
+class DataSourceActorTest extends TestKit(ActorSystem("test-jdbc-demo-DataSourceActorTest"))
 with FunSuiteLike
 with BeforeAndAfterAll
 with Matchers
@@ -28,7 +28,7 @@ with MockitoSugar {
   }
 
   test("init dataSource") {
-    val dataSource = system.actorOf(DataSourceActor.props)
+    val dataSource = system.actorOf(DataSourceActor.props, "dataSourceTest")
     val result = Await.result((dataSource ? GetConnection), 5.seconds)
     result.isInstanceOf[ConnectionResult] should equal(true)
     val con = result.asInstanceOf[ConnectionResult].con

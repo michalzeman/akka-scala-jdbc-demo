@@ -6,6 +6,7 @@ import akka.testkit.TestKit
 import akka.actor.ActorSystem
 import com.mz.example.actors.jdbc.DataSourceActorMessages.{ConnectionResult, GetConnection}
 import com.mz.example.actors.jdbc.JDBCConnectionActorMessages._
+import com.mz.example.domains.User
 import org.scalatest.FunSuiteLike
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.Matchers
@@ -23,7 +24,7 @@ import scala.util.{Failure, Success}
 /**
  * Created by zemo on 04/10/15.
  */
-class JDBCConnectionActorTest extends TestKit(ActorSystem("test-jdbc-demo")) with FunSuiteLike
+class JDBCConnectionActorTest extends TestKit(ActorSystem("test-jdbc-demo-JDBCConnectionActorTest")) with FunSuiteLike
 with BeforeAndAfterAll
 with Matchers
 with ConversionCheckedTripleEquals
@@ -100,7 +101,8 @@ with MockitoSugar {
     when(con.prepareStatement(query)).thenReturn(prdStatement)
     dataSource.reply(ConnectionResult(con))
 
+    def mapper (resultSet: ResultSet): Option[User] = {None}
 
-    Await.result((jdbcActor ? Select(query)), 5.seconds).isInstanceOf[SelectResult] should equal(true)
+    Await.result((jdbcActor ? Select(query, mapper)), 5.seconds).isInstanceOf[SelectResult[Option[User]]] should equal(true)
   }
 }

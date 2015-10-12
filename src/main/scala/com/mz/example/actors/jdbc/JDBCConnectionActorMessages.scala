@@ -58,13 +58,13 @@ object JDBCConnectionActorMessages {
    * Select statement
    * @param query
    */
-  case class Select(query: String)
+  case class Select[+E](query: String, mapper: ResultSet => E)
 
   /**
    * Result of select
-   * @param resultSet - ResultSet
+   * @param result - E
    */
-  case class SelectResult(resultSet: ResultSet)
+  case class SelectResult[+E](result: E)
 
   /**
    * Generated key as a result after Insert
