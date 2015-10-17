@@ -106,7 +106,7 @@ class UserRepositoryActor(jdbcActor: ActorRef) extends Actor with ActorLogging w
     Future {
       (jdbcActor ? Insert(
         s"""INSERT INTO $TABLE_NAME ($LAST_NAME_COL, $FIRST_NAME_COL)
-           VALUES ('${user.lastName}', '${user.firstName}')""".stripMargin)).mapTo[GeneratedKeyRes] onComplete {
+           VALUES ('${user.lastName}', '${user.firstName}')""")).mapTo[GeneratedKeyRes] onComplete {
         case Success(result) => p.success(Inserted(result.id))
         case Failure(f) => {
           log.error(f, f.getMessage)

@@ -16,7 +16,7 @@ trait SqlDomainMapper[+E] {
    */
   def mapResultSet(resultSet: ResultSet): Option[E] = {
     if (resultSet.next()) {
-      Some(mapResultSetUser(resultSet))
+      Some(mapResultSetDomain(resultSet))
     } else None
   }
 
@@ -25,6 +25,6 @@ trait SqlDomainMapper[+E] {
    * @param resultSet
    * @return
    */
-  def mapResultSetUser(resultSet: ResultSet): E
+  def mapResultSetDomain(resultSet: ResultSet): E
 
 }

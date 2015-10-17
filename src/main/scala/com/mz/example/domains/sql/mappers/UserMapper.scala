@@ -33,7 +33,7 @@ trait UserMapper extends SqlDomainMapper[User] {
    * @param resultSet
    * @return User
    */
-  def mapResultSetUser(resultSet: ResultSet): User = {
+  def mapResultSetDomain(resultSet: ResultSet): User = {
       User(resultSet.getLong(ID_COL), resultSet.getString(FIRST_NAME_COL), resultSet.getString(LAST_NAME_COL),
         Option(resultSet.getLong(ADDRESS_ID_COL)), None)
   }

@@ -11,6 +11,7 @@ class HelloWorldActor extends Actor with ActorLogging {
     val conf = ConfigFactory.load()
 //    log.info("Application configuration = "+conf.getString("akka.test"))
     // Send it the 'Greet' message
+//    context.actorSelection("").anchor
     greeter ! GreeterMessages.Greet
   }
 

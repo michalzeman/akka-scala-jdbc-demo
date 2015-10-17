@@ -17,7 +17,7 @@ CREATE TABLE users (
 CREATE TABLE addresses (
   id  bigserial NOT NULL,
   street        VARCHAR(255),
-  house_number  INTEGER,
+  house_number  VARCHAR(255),
   zip           VARCHAR(5),
   city          VARCHAR(255),
   CONSTRAINT addresses_pk PRIMARY KEY (id)
