@@ -31,15 +31,5 @@ with MockitoSugar {
     val dataSource = system.actorOf(DataSourceActor.props, "dataSourceTest")
     val result = Await.result((dataSource ? GetConnection), 5.seconds)
     result.isInstanceOf[ConnectionResult] should equal(true)
-    val con = result.asInstanceOf[ConnectionResult].con
-    try {
-      val stm = con.prepareStatement("SELECT TRUE")
-      val resultSet = stm.executeQuery();
-      resultSet.next
-      val firstRow = resultSet.getBoolean(1)
-      firstRow shouldBe (true)
-    } finally {
-      if (!con.isClosed) con.close()
-    }
   }
 }

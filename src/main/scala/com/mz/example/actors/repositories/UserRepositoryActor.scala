@@ -62,9 +62,15 @@ class UserRepositoryActor(jdbcActor: ActorRef) extends Actor with ActorLogging w
     log.debug("update")
     val p = Promise[Boolean]
     Future {
-      (jdbcActor ? Update(
-        s"""UPDATE $TABLE_NAME SET $FIRST_NAME_COL = '${user.firstName}', $LAST_NAME_COL = '${user.lastName}'
-           WHERE $ID_COL = ${user.id}""")).mapTo[Boolean] onComplete {
+      val addressIdColm = user.addressId match {
+        case Some(addressId) => s""", $ADDRESS_ID_COL = ${addressId}"""
+        case None => ""
+      }
+      val updateQuery =
+        s"""UPDATE $TABLE_NAME SET $FIRST_NAME_COL = '${user.firstName}',
+           $LAST_NAME_COL = '${user.lastName}'""".stripMargin.concat(addressIdColm)
+      val whereClause = s"""WHERE $ID_COL = ${user.id}"""
+      (jdbcActor ? Update(updateQuery.concat(whereClause))).mapTo[Boolean] onComplete {
         case Success(s) => p.success(s)
         case Failure(f) => {
           log.error(f, f.getMessage)
@@ -104,9 +110,16 @@ class UserRepositoryActor(jdbcActor: ActorRef) extends Actor with ActorLogging w
     log.debug("insert")
     val p = Promise[Inserted]
     Future {
+      val addressId = user.addressId match {
+        case Some(addressId) => s""", $addressId"""
+        case None => ""
+      }
+      val columns = s"""$LAST_NAME_COL, $FIRST_NAME_COL""".concat(
+        if(addressId.length > 0) s", $ADDRESS_ID_COL" else "")
+      val values = s"""'${user.lastName}', '${user.firstName}'""".concat(addressId)
       (jdbcActor ? Insert(
-        s"""INSERT INTO $TABLE_NAME ($LAST_NAME_COL, $FIRST_NAME_COL)
-           VALUES ('${user.lastName}', '${user.firstName}')""")).mapTo[GeneratedKeyRes] onComplete {
+        s"""INSERT INTO $TABLE_NAME ($columns)
+           VALUES ($values)""")).mapTo[GeneratedKeyRes] onComplete {
         case Success(result) => p.success(Inserted(result.id))
         case Failure(f) => {
           log.error(f, f.getMessage)

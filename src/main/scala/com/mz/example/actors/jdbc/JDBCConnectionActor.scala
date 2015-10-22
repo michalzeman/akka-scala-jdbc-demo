@@ -22,7 +22,7 @@ class JDBCConnectionActor(dataSourceRef: ActorRef) extends Actor with ActorLoggi
 
   context.watch(dataSourceRef)
 
-  private implicit val timeout: Timeout = 5.seconds
+  private implicit val timeout: Timeout = 1.seconds
 
   var connection: Option[Connection] = None
 

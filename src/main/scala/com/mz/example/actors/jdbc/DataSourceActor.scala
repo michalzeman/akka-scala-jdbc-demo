@@ -3,7 +3,7 @@ package com.mz.example.actors.jdbc
 import java.util.concurrent.TimeUnit
 
 import akka.actor.{Props, ActorRef, ActorLogging, Actor}
-import java.sql.Connection
+import java.sql.{SQLException, Connection}
 import com.typesafe.config.Config
 import com.zaxxer.hikari.{HikariDataSource, HikariConfig}
 
@@ -33,9 +33,16 @@ class DataSourceActor extends Actor with ActorLogging{
    */
   private def getConnection : Unit = {
     Future[ConnectionResult] {
-      val con = dataSource.getConnection
-      con.setSchema(defaultSchema)
-      ConnectionResult(con)
+      try {
+        val con = dataSource.getConnection
+        con.setSchema(defaultSchema)
+        ConnectionResult(con)
+      } catch {
+        case e:SQLException => {
+          log.error(e, e.getMessage)
+          throw e
+        }
+      }
     } pipeTo(sender)
   }
 
