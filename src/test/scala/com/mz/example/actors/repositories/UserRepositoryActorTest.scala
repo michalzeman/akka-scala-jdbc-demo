@@ -1,6 +1,5 @@
 package com.mz.example.actors.repositories
 
-import com.mz.example.actors.jdbc.{JDBCConnectionActor, DataSourceActor}
 import com.mz.example.actors.jdbc.JDBCConnectionActorMessages.{Rollback, Commit}
 import com.mz.example.actors.repositories.common.AbstractRepositoryActorTest
 import akka.pattern.ask

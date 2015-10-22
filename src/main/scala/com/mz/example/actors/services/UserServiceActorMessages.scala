@@ -19,9 +19,13 @@ object UserServiceActorMessages {
 
   case class UserDeleted()
 
+  case class UserNotDeleted()
+
   case class UpdateUser(user: User)
 
   case class UserUpdated()
+
+  case class UserNotUpdated()
 
   case class AddAddressToUser(user: User, address: Address)
 

@@ -41,14 +41,12 @@ class UserRepositoryActor(jdbcActor: ActorRef) extends Actor with ActorLogging w
   private def selectById(id: Long): Future[Option[User]] = {
     log.debug("SelectById")
     val p = Promise[Option[User]]
-    Future {
-      (jdbcActor ? Select(s"select $ID_COL, $LAST_NAME_COL, $FIRST_NAME_COL, $ADDRESS_ID_COL " +
-        s"from $TABLE_NAME where $ID_COL = $id", mapResultSet)).mapTo[SelectResult[Option[User]]] onComplete {
-        case Success(result) => p.success(result.result)
-        case Failure(f) => {
-          log.error(f, f.getMessage)
-          p.failure(f)
-        }
+    (jdbcActor ? Select(s"select $ID_COL, $LAST_NAME_COL, $FIRST_NAME_COL, $ADDRESS_ID_COL " +
+      s"from $TABLE_NAME where $ID_COL = $id", mapResultSet)).mapTo[SelectResult[Option[User]]] onComplete {
+      case Success(result) => p.success(result.result)
+      case Failure(f) => {
+        log.error(f, f.getMessage)
+        p.failure(f)
       }
     }
     p.future
@@ -89,13 +87,11 @@ class UserRepositoryActor(jdbcActor: ActorRef) extends Actor with ActorLogging w
   private def delete(id: Long): Future[Boolean] = {
     log.debug("delete")
     val p = Promise[Boolean]
-    Future {
-      (jdbcActor ? Delete(s"DELETE FROM $TABLE_NAME WHERE id = $id")).mapTo[Boolean] onComplete {
-        case Success(s) => p.success(s)
-        case Failure(f) => {
-          log.error(f, f.getMessage)
-          p.failure(f)
-        }
+    (jdbcActor ? Delete(s"DELETE FROM $TABLE_NAME WHERE id = $id")).mapTo[Boolean] onComplete {
+      case Success(s) => p.success(s)
+      case Failure(f) => {
+        log.error(f, f.getMessage)
+        p.failure(f)
       }
     }
     p.future

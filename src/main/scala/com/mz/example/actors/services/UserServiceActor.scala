@@ -29,6 +29,8 @@ class UserServiceActor(userRepProps: Props, addressRepProps: Props) extends Acto
   override def receive: Receive = {
     case CreateUser(firstName, lastName) => createUser(firstName, lastName) pipeTo sender
     case FindUserById(id) => findUserById(id) pipeTo sender
+    case DeleteUser(user) => deleteUser(user) pipeTo sender
+    case UpdateUser(user) => updateUser(user) pipeTo sender
   }
 
   /**
@@ -40,16 +42,22 @@ class UserServiceActor(userRepProps: Props, addressRepProps: Props) extends Acto
   private def createUser(firstName: String, lastName: String): Future[UserCreated] = {
     log.info(s"createUser first name = $firstName, last name = $lastName")
     val p = Promise[UserCreated]
-    Future {
-      (userRepository ? InsertUser(User(0, firstName, lastName, None, None))).mapTo[Inserted] onComplete {
-        case Success(s) => {
-          log.info("createUser - success!")
-          p.success(UserCreated(s.id))
+    (userRepository ? InsertUser(User(0, firstName, lastName, None, None))) onComplete {
+      case Success(s) => {
+        s match {
+          case result: Inserted => {
+            log.info("createUser - success!")
+            p.success(UserCreated(result.id))
+          }
+          case _ => {
+            log.warning("Unsupported message type")
+            p.failure(new RuntimeException("Unsupported message type"))
+          }
         }
-        case Failure(f) => {
-          log.error(f, f.getMessage)
-          p.failure(f)
-        }
+      }
+      case Failure(f) => {
+        log.error(f, f.getMessage)
+        p.failure(f)
       }
     }
     p.future
@@ -63,19 +71,74 @@ class UserServiceActor(userRepProps: Props, addressRepProps: Props) extends Acto
   private def findUserById(id: Long): Future[FoundUsers] = {
     log.info(s"findUserById - id = $id")
     val p = Promise[FoundUsers]
-    Future {
-      (userRepository ? SelectById(id)).mapTo[Option[User]] onComplete {
-        case Success(s) => {
-          log.info("findUserById - success!")
-          s match {
-            case Some(user) => p.success(FoundUsers(List(user)))
-            case None => p.success(FoundUsers(Nil))
+    (userRepository ? SelectById(id)) onComplete {
+      case Success(s) => {
+        log.info("findUserById - success!")
+        s match {
+          case s:Some[User] => p.success(FoundUsers(List(s.get)))
+          case None => p.success(FoundUsers(Nil))
+          case _ => {
+            log.warning("Unsupported message type!")
+            p.failure(new RuntimeException("Unsupported message type"))
           }
         }
-        case Failure(f) => {
-          log.error(f, f.getMessage)
-          p.failure(f)
+      }
+      case Failure(f) => {
+        log.error(f, f.getMessage)
+        p.failure(f)
+      }
+    }
+    p.future
+  }
+
+  /**
+   * Delete user
+   * @param user - User to delete
+   * @return Future[UserDeleted]
+   */
+  private def deleteUser(user: User): Future[UserDeleted] = {
+    val p = Promise[UserDeleted]
+    (userRepository ?
+      com.mz.example.actors.repositories.common.messages.UserRepositoryActorMessages.DeleteUser(user.id)) onComplete {
+      case Success(success) => success match {
+        case true => {
+          log.info("User delete success!")
+          p.success(UserDeleted())
         }
+        case _ => {
+          log.warning("Unsupported message type!")
+          p.failure(new RuntimeException("Unsupported message type"))
+        }
+      }
+      case Failure(f) => {
+        log.error(f, f.getMessage)
+        p.failure(f)
+      }
+    }
+    p.future
+  }
+
+  /**
+   * Update user
+   * @param user
+   * @return
+   */
+  private def updateUser(user: User): Future[UserUpdated] = {
+    import com.mz.example.actors.repositories.common.messages.UserRepositoryActorMessages.UpdateUser
+    val p = Promise[UserUpdated]
+    (userRepository ? UpdateUser(user)) onComplete {
+      case Success(s) => s match {
+        case true => {
+          p.success(UserUpdated())
+        }
+        case _ => {
+          log.warning("Unsupported message type!")
+          p.failure(new RuntimeException("Unsupported message type"))
+        }
+      }
+      case Failure(f) => {
+        log.error(f, f.getMessage)
+        p.failure(f)
       }
     }
     p.future
@@ -87,8 +150,9 @@ object UserServiceActor {
 
   /**
    * Create Props
-   * @param jdbcActor
+   * @param userRepProps
+   * @param addressRepProps
    * @return Props
    */
-  def props(jdbcActor: ActorRef): Props = Props(classOf[UserServiceActor], jdbcActor)
+  def props(userRepProps: Props, addressRepProps: Props): Props = Props(classOf[UserServiceActor], userRepProps, addressRepProps)
 }

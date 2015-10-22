@@ -43,14 +43,12 @@ class AddressRepositoryActor(jdbcActor: ActorRef) extends Actor with ActorLoggin
   private def selectById(id: Long): Future[Option[Address]] = {
     log.debug("SelectById")
     val p = Promise[Option[Address]]
-    Future {
-      (jdbcActor ? Select(s"select $ID_COL, $STREET_COL, $ZIP_COL, $HOUSE_NUMBER_COL, $CITY_COL " +
-        s"from $TABLE_NAME where $ID_COL = $id", mapResultSet)).mapTo[SelectResult[Option[Address]]] onComplete {
-        case Success(result) => p.success(result.result)
-        case Failure(f) => {
-          log.error(f, f.getMessage)
-          p.failure(f)
-        }
+    (jdbcActor ? Select(s"select $ID_COL, $STREET_COL, $ZIP_COL, $HOUSE_NUMBER_COL, $CITY_COL " +
+      s"from $TABLE_NAME where $ID_COL = $id", mapResultSet)).mapTo[SelectResult[Option[Address]]] onComplete {
+      case Success(result) => p.success(result.result)
+      case Failure(f) => {
+        log.error(f, f.getMessage)
+        p.failure(f)
       }
     }
     p.future
@@ -64,16 +62,14 @@ class AddressRepositoryActor(jdbcActor: ActorRef) extends Actor with ActorLoggin
   private def update(address: Address): Future[Boolean] = {
     log.debug("update")
     val p = Promise[Boolean]
-    Future {
-      (jdbcActor ? Update(
-        s"""UPDATE $TABLE_NAME SET $STREET_COL = '${address.street}', $ZIP_COL = '${address.zip}',
-            $HOUSE_NUMBER_COL = '${address.houseNumber}', $CITY_COL = '${address.city}'
-           WHERE $ID_COL = ${address.id}""")).mapTo[Boolean] onComplete {
-        case Success(s) => p.success(s)
-        case Failure(f) => {
-          log.error(f, f.getMessage)
-          p.failure(f)
-        }
+    (jdbcActor ? Update(
+      s"""UPDATE $TABLE_NAME SET $STREET_COL = '${address.street}', $ZIP_COL = '${address.zip}',
+          $HOUSE_NUMBER_COL = '${address.houseNumber}', $CITY_COL = '${address.city}'
+         WHERE $ID_COL = ${address.id}""")).mapTo[Boolean] onComplete {
+      case Success(s) => p.success(s)
+      case Failure(f) => {
+        log.error(f, f.getMessage)
+        p.failure(f)
       }
     }
     p.future
@@ -87,13 +83,11 @@ class AddressRepositoryActor(jdbcActor: ActorRef) extends Actor with ActorLoggin
   private def delete(id: Long): Future[Boolean] = {
     log.debug("delete")
     val p = Promise[Boolean]
-    Future {
-      (jdbcActor ? Delete(s"DELETE FROM $TABLE_NAME WHERE $ID_COL = $id")).mapTo[Boolean] onComplete {
-        case Success(s) => p.success(s)
-        case Failure(f) => {
-          log.error(f, f.getMessage)
-          p.failure(f)
-        }
+    (jdbcActor ? Delete(s"DELETE FROM $TABLE_NAME WHERE $ID_COL = $id")).mapTo[Boolean] onComplete {
+      case Success(s) => p.success(s)
+      case Failure(f) => {
+        log.error(f, f.getMessage)
+        p.failure(f)
       }
     }
     p.future
@@ -107,16 +101,14 @@ class AddressRepositoryActor(jdbcActor: ActorRef) extends Actor with ActorLoggin
   private def insert(address: Address): Future[Inserted] = {
     log.debug("insert")
     val p = Promise[Inserted]
-    Future {
-      (jdbcActor ? Insert(
-        s"""INSERT INTO $TABLE_NAME ($STREET_COL, $ZIP_COL, $HOUSE_NUMBER_COL, $CITY_COL)
-           VALUES ('${address.street}', '${address.zip}', '${address.houseNumber}', '${address.city}')"""))
-        .mapTo[GeneratedKeyRes] onComplete {
-        case Success(result) => p.success(Inserted(result.id))
-        case Failure(f) => {
-          log.error(f, f.getMessage)
-          p.failure(f)
-        }
+    (jdbcActor ? Insert(
+      s"""INSERT INTO $TABLE_NAME ($STREET_COL, $ZIP_COL, $HOUSE_NUMBER_COL, $CITY_COL)
+         VALUES ('${address.street}', '${address.zip}', '${address.houseNumber}', '${address.city}')"""))
+      .mapTo[GeneratedKeyRes] onComplete {
+      case Success(result) => p.success(Inserted(result.id))
+      case Failure(f) => {
+        log.error(f, f.getMessage)
+        p.failure(f)
       }
     }
     p.future
