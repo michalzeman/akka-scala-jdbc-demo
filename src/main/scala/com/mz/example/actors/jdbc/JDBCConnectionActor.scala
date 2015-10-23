@@ -204,18 +204,23 @@ class JDBCConnectionActor(dataSourceRef: ActorRef) extends Actor with ActorLoggi
    */
   private def commit: Unit = {
     log.debug("JDBCConnectionActor.Commit")
-    try {
-      connection.map(con => {
+    connection.map(con => {
+      try {
         con.commit()
-        context.unbecome()
         sender() ! Committed
-      })
-    } catch {
-      case e: SQLException => {
-        log.error(e, "JDBCConnectionActor.Commit")
-        throw e
+      } catch {
+        case e: SQLException => {
+          log.error(e, "JDBCConnectionActor.Commit")
+          throw e
+        }
+      } finally {
+        context.unbecome()
+        if (!con.isClosed) {
+          con.close()
+        }
       }
-    }
+    })
+    connection = None
   }
 
   /**
@@ -223,17 +228,22 @@ class JDBCConnectionActor(dataSourceRef: ActorRef) extends Actor with ActorLoggi
    */
   private def rollback: Unit = {
     log.debug("JDBCConnectionActor.Rollback")
-    try {
-      connection.map(con => {
-        context.unbecome()
+    connection.map(con => {
+      try {
         con.rollback()
-      })
-    } catch {
-      case e: SQLException => {
-        log.error(e, "JDBCConnectionActor.Rollback")
-        throw e
+      } catch {
+        case e: SQLException => {
+          log.error(e, "JDBCConnectionActor.Rollback")
+          throw e
+        }
+      } finally {
+        context.unbecome()
+        if (!con.isClosed) {
+          con.close()
+        }
       }
-    }
+    })
+    connection = None
   }
 
   private def executeUpdate(query: String, con: Connection): Boolean = {
