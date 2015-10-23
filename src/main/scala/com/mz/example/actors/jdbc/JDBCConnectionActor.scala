@@ -26,25 +26,52 @@ class JDBCConnectionActor(dataSourceRef: ActorRef) extends Actor with ActorLoggi
 
   var connection: Option[Connection] = None
 
-  var retryConnectionAttempt = 7
-
   @throws[RuntimeException](classOf[RuntimeException])
   override def preStart(): Unit = {
     log.info("init of Actor")
-    (dataSourceRef ? GetConnection).mapTo[ConnectionResult] onComplete {
-      case Success(con) => {
-        log.debug("Connection returned!")
-        connection = Some(con.con)
-        context.become(connectionReady)
-      }
-      case Failure(f) => {
-        log.error(f, f.getMessage)
-        throw f
-      }
-    }
+    askForConnection
   }
 
   override def receive: Receive = {
+    case opr: Insert => {
+      connectionNotReady(opr, sender)
+      askForConnection
+    }
+    case opr: Update => {
+      connectionNotReady(opr, sender)
+      askForConnection
+    }
+    case opr: Delete => {
+      connectionNotReady(opr, sender)
+      askForConnection
+    }
+    case Select(query, mapper) => {
+      connectionNotReady(Select(query, mapper), sender)
+      askForConnection
+    }
+    case RetryOperation(opr, orgSender) => {
+      log.warning("JDBCConnectionActor is in the wrong state!")
+      throw new RuntimeException("JDBCConnectionActor is in the wrong state!")
+    }
+    case UnsupportedOperation => log.debug(s"Receive => sender sent UnsupportedOperation $sender")
+    case obj: Any => {
+      log.warning(s"receive => Unsupported operation object ${obj.getClass}")
+      sender() ! UnsupportedOperation
+    }
+  }
+
+  private def connectionNotReady(opr: Any, orgSender: ActorRef): Unit = {
+    log.info(s"Connection is not jet ready!")
+    context.system.scheduler.scheduleOnce(
+      150.millisecond, self, RetryOperation(opr, orgSender))
+  }
+
+  private def waitingForConnection: Receive = {
+    case ConnectionResult(con) => {
+      log.debug("Connection returned!")
+      connection = Some(con)
+      context.become(connectionReady)
+    }
     case opr: Insert => connectionNotReady(opr, sender)
     case opr: Update => connectionNotReady(opr, sender)
     case opr: Delete => connectionNotReady(opr, sender)
@@ -55,13 +82,6 @@ class JDBCConnectionActor(dataSourceRef: ActorRef) extends Actor with ActorLoggi
       log.warning(s"receive => Unsupported operation object ${obj.getClass}")
       sender() ! UnsupportedOperation
     }
-  }
-
-  private def connectionNotReady(opr: Any, orgSender: ActorRef): Unit = {
-    log.info(s"Connection is not jet ready! Attempt for getting of connection $retryConnectionAttempt")
-    retryConnectionAttempt -= 1
-    context.system.scheduler.scheduleOnce(
-      150.millisecond, self, RetryOperation(opr, orgSender))
   }
 
   private def connectionReady: Receive = {
@@ -82,6 +102,14 @@ class JDBCConnectionActor(dataSourceRef: ActorRef) extends Actor with ActorLoggi
       log.warning(s"connectionReady => Unsupported operation object ${obj.getClass}")
       sender() ! UnsupportedOperation
     }
+  }
+
+  /**
+   * Ask for new connection from DataSourceActor
+   */
+  private def askForConnection: Unit = {
+    context.become(waitingForConnection)
+    dataSourceRef ! GetConnection
   }
 
   /**
@@ -179,6 +207,7 @@ class JDBCConnectionActor(dataSourceRef: ActorRef) extends Actor with ActorLoggi
     try {
       connection.map(con => {
         con.commit()
+        context.unbecome()
         sender() ! Committed
       })
     } catch {
@@ -196,6 +225,7 @@ class JDBCConnectionActor(dataSourceRef: ActorRef) extends Actor with ActorLoggi
     log.debug("JDBCConnectionActor.Rollback")
     try {
       connection.map(con => {
+        context.unbecome()
         con.rollback()
       })
     } catch {
@@ -240,6 +270,9 @@ class JDBCConnectionActor(dataSourceRef: ActorRef) extends Actor with ActorLoggi
   }
 }
 
+/**
+ * Companion object
+ */
 object JDBCConnectionActor {
 
   /**
