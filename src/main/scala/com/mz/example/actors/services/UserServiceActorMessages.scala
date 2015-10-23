@@ -23,9 +23,11 @@ object UserServiceActorMessages {
 
   case class UpdateUser(user: User)
 
-  case class UserUpdated()
+  trait UserUpdateResult
 
-  case class UserNotUpdated()
+  case class UserUpdated() extends UserUpdateResult
+
+  case class UserNotUpdated() extends UserUpdateResult
 
   case class AddAddressToUser(user: User, address: Address)
 
