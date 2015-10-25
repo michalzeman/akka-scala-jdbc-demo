@@ -86,15 +86,15 @@ class JDBCConnectionActor(dataSourceRef: ActorRef) extends Actor with ActorLoggi
 
   private def connectionReady: Receive = {
     case RetryOperation(message, senderOrg) => message match {
-      case Insert(query) => senderOrg ! insert(query)
-      case Update(query) => senderOrg ! update(query)
-      case Delete(query) => senderOrg ! delete(query)
-      case Select(query, mapper) => senderOrg ! select(query, mapper)
+      case Insert(query) => insert(query) pipeTo senderOrg
+      case Update(query) => update(query) pipeTo senderOrg
+      case Delete(query) => delete(query) pipeTo senderOrg
+      case Select(query, mapper) => select(query, mapper) pipeTo senderOrg
     }
-    case Insert(query) => sender ! insert(query)
-    case Update(query) => sender ! update(query)
-    case Delete(query) => sender ! delete(query)
-    case Select(query, mapper) => sender ! select(query, mapper)
+    case Insert(query) => insert(query) pipeTo sender
+    case Update(query) => update(query) pipeTo sender
+    case Delete(query) => delete(query) pipeTo sender
+    case Select(query, mapper) =>  select(query, mapper) pipeTo sender
     case Commit => commit
     case Rollback => rollback
     case UnsupportedOperation => log.debug(s"sender sent UnsupportedOperation $sender")
@@ -117,22 +117,26 @@ class JDBCConnectionActor(dataSourceRef: ActorRef) extends Actor with ActorLoggi
    * @param query
    * @return
    */
-  private def select[E](query: String, mapper: ResultSet => E): SelectResult[E] = {
-    connection.map(con => {
-      log.info(s"Select query = $query")
-      val prtStatement = con.prepareStatement(query)
-      try {
-        val result = SelectResult(mapper(prtStatement.executeQuery()))
-        result
-      } catch {
-        case e: SQLException => {
-          log.error(e.getMessage, e)
-          throw e
+  private def select[E](query: String, mapper: ResultSet => E): Future[SelectResult[E]] = {
+    val p = Promise[SelectResult[E]]
+    Future {
+      connection.map(con => {
+        log.info(s"Select query = $query")
+        val prtStatement = con.prepareStatement(query)
+        try {
+          val result = SelectResult(mapper(prtStatement.executeQuery()))
+          p.success(result)
+        } catch {
+          case e: SQLException => {
+            log.error(e.getMessage, e)
+            p.failure(e)
+          }
+        } finally {
+          prtStatement.close
         }
-      } finally {
-        prtStatement.close
-      }
-    }).get
+      })
+    }
+    p.future
   }
 
   /**
@@ -140,11 +144,15 @@ class JDBCConnectionActor(dataSourceRef: ActorRef) extends Actor with ActorLoggi
    * @param query
    * @return Future
    */
-  private def delete(query: String): Boolean = {
-    connection.map(con => {
-      log.info(s"Delete query = $query")
-      executeUpdate(query, con)
-    }).get
+  private def delete(query: String): Future[Boolean] = {
+    val p = Promise[Boolean]
+    Future {
+      connection.map(con => {
+        log.info(s"Delete query = $query")
+        executeUpdate(query, con, p)
+      })
+    }
+    p.future
   }
 
   /**
@@ -152,22 +160,26 @@ class JDBCConnectionActor(dataSourceRef: ActorRef) extends Actor with ActorLoggi
    * @param query
    * @return Future
    */
-  private def update(query: String): Boolean = {
-    connection.map(con => {
-      log.info(s"Update query = $query")
-      val prtStatement = con.prepareStatement(query)
-      try {
-        prtStatement.executeUpdate()
-        true
-      } catch {
-        case e: SQLException => {
-          log.error(e.getMessage, e)
-          throw e
+  private def update(query: String): Future[Boolean] = {
+    val p = Promise[Boolean]
+    Future {
+      connection.map(con => {
+        log.info(s"Update query = $query")
+        val prtStatement = con.prepareStatement(query)
+        try {
+          prtStatement.executeUpdate()
+          p.success(true)
+        } catch {
+          case e: SQLException => {
+            log.error(e.getMessage, e)
+            p.failure(e)
+          }
+        } finally {
+          prtStatement.close
         }
-      } finally {
-        prtStatement.close
-      }
-    }).get
+      })
+    }
+    p.future
   }
 
   /**
@@ -175,28 +187,32 @@ class JDBCConnectionActor(dataSourceRef: ActorRef) extends Actor with ActorLoggi
    * @param query
    * @return
    */
-  private def insert(query: String): GeneratedKeyRes = {
-    connection.map(con => {
-      log.info(s"Insert query = $query")
-      val prtStatement = con.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)
-      try {
-        prtStatement.executeUpdate()
-        val keys = prtStatement.getGeneratedKeys
-        if (keys.next) {
-          log.debug("inserted successful!")
-          GeneratedKeyRes(keys.getLong(1))
-        } else {
-          GeneratedKeyRes(0)
+  private def insert(query: String): Future[GeneratedKeyRes] = {
+    val p = Promise[GeneratedKeyRes]
+    Future {
+      connection.map(con => {
+        log.info(s"Insert query = $query")
+        val prtStatement = con.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)
+        try {
+          prtStatement.executeUpdate()
+          val keys = prtStatement.getGeneratedKeys
+          if (keys.next) {
+            log.debug("inserted successful!")
+            p.success(GeneratedKeyRes(keys.getLong(1)))
+          } else {
+            p.success(GeneratedKeyRes(0))
+          }
+        } catch {
+          case e: SQLException => {
+            log.error(e, e.getMessage)
+            p.failure(e)
+          }
+        } finally {
+          prtStatement.close
         }
-      } catch {
-        case e: SQLException => {
-          log.error(e, e.getMessage)
-          throw e
-        }
-      } finally {
-        prtStatement.close
-      }
-    }).get
+      })
+    }
+    p.future
   }
 
   /**
@@ -246,15 +262,15 @@ class JDBCConnectionActor(dataSourceRef: ActorRef) extends Actor with ActorLoggi
     connection = None
   }
 
-  private def executeUpdate(query: String, con: Connection): Boolean = {
+  private def executeUpdate(query: String, con: Connection, p: Promise[Boolean]): Unit = {
     val prtStatement = con.prepareStatement(query)
     try {
       prtStatement.executeUpdate()
-      true
+      p.success(true)
     } catch {
       case e: SQLException => {
         log.error(e.getMessage, e)
-        throw e
+        p.failure(e)
       }
     } finally {
       prtStatement.close
