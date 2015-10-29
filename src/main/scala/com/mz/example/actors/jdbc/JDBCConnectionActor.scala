@@ -140,19 +140,13 @@ class JDBCConnectionActor(dataSourceRef: ActorRef) extends Actor with ActorLoggi
   }
 
   /**
-   * execute update
+   * execute delete
    * @param query
    * @return Future
    */
   private def delete(query: String): Future[Boolean] = {
-    val p = Promise[Boolean]
-    Future {
-      connection.map(con => {
-        log.info(s"Delete query = $query")
-        executeUpdate(query, con, p)
-      })
-    }
-    p.future
+    log.info(s"Delete query = $query")
+    executeUpdate(query)
   }
 
   /**
@@ -161,25 +155,8 @@ class JDBCConnectionActor(dataSourceRef: ActorRef) extends Actor with ActorLoggi
    * @return Future
    */
   private def update(query: String): Future[Boolean] = {
-    val p = Promise[Boolean]
-    Future {
-      connection.map(con => {
-        log.info(s"Update query = $query")
-        val prtStatement = con.prepareStatement(query)
-        try {
-          prtStatement.executeUpdate()
-          p.success(true)
-        } catch {
-          case e: SQLException => {
-            log.error(e.getMessage, e)
-            p.failure(e)
-          }
-        } finally {
-          prtStatement.close
-        }
-      })
-    }
-    p.future
+    log.info(s"Update query = $query")
+    executeUpdate(query)
   }
 
   /**
@@ -262,19 +239,25 @@ class JDBCConnectionActor(dataSourceRef: ActorRef) extends Actor with ActorLoggi
     connection = None
   }
 
-  private def executeUpdate(query: String, con: Connection, p: Promise[Boolean]): Unit = {
-    val prtStatement = con.prepareStatement(query)
-    try {
-      prtStatement.executeUpdate()
-      p.success(true)
-    } catch {
-      case e: SQLException => {
-        log.error(e.getMessage, e)
-        p.failure(e)
-      }
-    } finally {
-      prtStatement.close
+  private def executeUpdate(query: String): Future[Boolean] = {
+    val p = Promise[Boolean]
+    Future {
+      connection.map(con => {
+        val prtStatement = con.prepareStatement(query)
+        try {
+          prtStatement.executeUpdate()
+          p.success(true)
+        } catch {
+          case e: SQLException => {
+            log.error(e.getMessage, e)
+            p.failure(e)
+          }
+        } finally {
+          prtStatement.close
+        }
+      })
     }
+    p.future
   }
 
   @throws[Exception](classOf[Exception])

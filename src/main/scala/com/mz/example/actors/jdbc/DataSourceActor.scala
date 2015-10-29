@@ -25,7 +25,7 @@ class DataSourceActor extends Actor with ActorLogging{
 
   override def receive: Receive = {
     case GetConnection => getConnection
-    case _ => UnsupportedOperation
+    case _ => sender ! UnsupportedOperation
   }
 
   /**

@@ -3,10 +3,11 @@ package com.mz.example.actors.services
 import akka.actor.Actor.Receive
 import akka.actor.{Props, ActorRef, ActorLogging, Actor}
 import akka.util.Timeout
+import com.mz.example.actors.common.messages.Messages.UnsupportedOperation
 import com.mz.example.actors.repositories.common.messages.{SelectById, Inserted}
 import com.mz.example.actors.repositories.common.messages.UserRepositoryActorMessages.InsertUser
 import com.mz.example.actors.services.UserServiceActorMessages._
-import com.mz.example.domains.User
+import com.mz.example.domains.{Address, User}
 import akka.pattern._
 import scala.concurrent.duration._
 
@@ -16,7 +17,7 @@ import scala.util.{Failure, Success}
 /**
  * Created by zemo on 18/10/15.
  */
-class UserServiceActor(userRepProps: Props, addressRepProps: Props) extends Actor with ActorLogging {
+class UserServiceActor(userRepProps: Props, addressServiceProps: Props) extends Actor with ActorLogging {
 
   import context.dispatcher
 
@@ -24,13 +25,14 @@ class UserServiceActor(userRepProps: Props, addressRepProps: Props) extends Acto
 
   val userRepository = context.actorOf(userRepProps)
 
-  val addressRepository = context.actorOf(addressRepProps)
+  val addressService = context.actorOf(addressServiceProps)
 
   override def receive: Receive = {
     case CreateUser(firstName, lastName) => createUser(firstName, lastName) pipeTo sender
     case FindUserById(id) => findUserById(id) pipeTo sender
     case DeleteUser(user) => deleteUser(user) pipeTo sender
     case UpdateUser(user) => updateUser(user) pipeTo sender
+    case _ => sender ! UnsupportedOperation
   }
 
   /**
@@ -134,8 +136,8 @@ object UserServiceActor {
   /**
    * Create Props
    * @param userRepProps
-   * @param addressRepProps
+   * @param addressServiceProps
    * @return Props
    */
-  def props(userRepProps: Props, addressRepProps: Props): Props = Props(classOf[UserServiceActor], userRepProps, addressRepProps)
+  def props(userRepProps: Props, addressServiceProps: Props): Props = Props(classOf[UserServiceActor], userRepProps, addressServiceProps)
 }

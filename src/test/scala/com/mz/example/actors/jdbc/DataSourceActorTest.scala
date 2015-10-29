@@ -29,7 +29,8 @@ with MockitoSugar {
 
   test("init dataSource") {
     val dataSource = system.actorOf(DataSourceActor.props, "dataSourceTest")
-    val result = Await.result((dataSource ? GetConnection), 5.seconds)
+//    val result = Await.result((dataSource ? GetConnection), 5.seconds)
+    val result = Await.result((system.actorSelection("/user/dataSourceTest") ? GetConnection), 5.seconds)
     result.isInstanceOf[ConnectionResult] should equal(true)
   }
 }
