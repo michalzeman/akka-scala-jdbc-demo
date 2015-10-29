@@ -15,7 +15,7 @@ import scala.concurrent.duration._
 /**
  * Created by zemi on 29. 10. 2015.
  */
-class UserActionActorIntegrationTest extends TestKit(ActorSystem("test-jdbc-demo-UserServiceActorTest"))
+class UserActionActorIntegrationTest extends TestKit(ActorSystem("test-jdbc-demo-UserActionActorTest"))
 with FunSuiteLike
 with BeforeAndAfterAll
 with Matchers
@@ -30,17 +30,23 @@ with MockitoSugar {
   val dataSourceActor = system.actorOf(DataSourceActor.props, DataSourceActor.actorName)
 
   test("Registrate user") {
-
     val futures =
-    for (i <- 1 to 10000) yield Future {
-            val userAction = system.actorOf(Props[UserActionActor])
+      for (i <- 1 to 10000) yield {
+        Thread sleep 5
+        val userAction = system.actorOf(Props[UserActionActor])
+        (userAction ? RegistrateUser(User(0, "FirstNameTest", "LastNameTest", None, None),
+          Address(0, "test", "82109", "9A", "testCity")))
+      }
 
-            userAction ! RegistrateUser(User(0, "FirstNameTest", "LastNameTest", None, None), Address(0, "test", "82109", "9A", "testCity"))
-          }
+    for {future <- futures} yield Await.result(future, 1 minutes)
 
+  }
 
-    for {future <- futures} yield Await.result(future, 10 minutes)
+  test("test one") {
+    val userAction = system.actorOf(Props[UserActionActor])
 
+    (userAction ? RegistrateUser(User(0, "FirstNameTest", "LastNameTest", None, None),
+      Address(0, "test", "82109", "9A", "testCity")))
   }
 
   override protected def afterAll(): Unit = {

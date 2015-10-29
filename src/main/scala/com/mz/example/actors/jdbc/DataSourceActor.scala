@@ -32,18 +32,19 @@ class DataSourceActor extends Actor with ActorLogging{
    * Return connection from the connection pool
    */
   private def getConnection : Unit = {
-    Future[ConnectionResult] {
+//    Future[ConnectionResult] {
       try {
         val con = dataSource.getConnection
         con.setSchema(defaultSchema)
-        ConnectionResult(con)
+        sender ! ConnectionResult(con)
+//        ConnectionResult(con)
       } catch {
         case e:SQLException => {
           log.error(e, e.getMessage)
           throw e
         }
       }
-    } pipeTo(sender)
+//    } pipeTo(sender)
   }
 
   private def configCon: HikariConfig = {
