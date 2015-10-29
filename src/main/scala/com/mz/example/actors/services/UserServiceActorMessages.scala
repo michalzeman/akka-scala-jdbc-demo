@@ -7,7 +7,7 @@ import com.mz.example.domains.{Address, User}
  */
 object UserServiceActorMessages {
 
-  case class CreateUser(firstName: String, lastName: String)
+  case class CreateUser(user: User)
 
   case class UserCreated(id: Long)
 
@@ -31,5 +31,7 @@ object UserServiceActorMessages {
 
   case class AddAddressToUser(user: User, address: Address)
 
-  case class AddressAddedTodUser()
+  case class RegistrateUser(user: User, address: Address)
+
+  case class UserRegistrated()
 }

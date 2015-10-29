@@ -15,12 +15,12 @@ import scala.util.{Failure, Success}
 /**
  * Created by zemi on 1. 10. 2015.
  */
-class JDBCConnectionActor(dataSourceRef: ActorRef) extends Actor with ActorLogging with DataSourceActorFactory {
+class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFactory {
 
   import JDBCConnectionActorMessages._
   import context.dispatcher
 
-  context.watch(dataSourceRef)
+//  context.watch(dataSourceRef)
 
   private implicit val timeout: Timeout = 1.seconds
 
@@ -109,7 +109,8 @@ class JDBCConnectionActor(dataSourceRef: ActorRef) extends Actor with ActorLoggi
    */
   private def askForConnection: Unit = {
     context.become(waitingForConnection)
-    dataSourceRef ! GetConnection
+    //system.actorSelection("/user/"+DataSourceActor.actorName) ? GetConnection
+    context.actorSelection(actorPath) ! GetConnection
   }
 
   /**
@@ -288,5 +289,5 @@ object JDBCConnectionActor {
    * Create Props for an actor of this type
    * @return a Props
    */
-  def props(dataSourceRef: ActorRef): Props = Props(classOf[JDBCConnectionActor], dataSourceRef)
+  def props: Props = Props[JDBCConnectionActor]
 }

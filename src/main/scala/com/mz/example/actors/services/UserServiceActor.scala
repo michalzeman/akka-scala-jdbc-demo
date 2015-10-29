@@ -6,6 +6,7 @@ import akka.util.Timeout
 import com.mz.example.actors.common.messages.Messages.UnsupportedOperation
 import com.mz.example.actors.repositories.common.messages.{SelectById, Inserted}
 import com.mz.example.actors.repositories.common.messages.UserRepositoryActorMessages.InsertUser
+import com.mz.example.actors.services.AddressServiceActorMessages.{AddressCreated, CreateAddress}
 import com.mz.example.actors.services.UserServiceActorMessages._
 import com.mz.example.domains.{Address, User}
 import akka.pattern._
@@ -28,23 +29,48 @@ class UserServiceActor(userRepProps: Props, addressServiceProps: Props) extends 
   val addressService = context.actorOf(addressServiceProps)
 
   override def receive: Receive = {
-    case CreateUser(firstName, lastName) => createUser(firstName, lastName) pipeTo sender
+    case CreateUser(user) => createUser(user) pipeTo sender
     case FindUserById(id) => findUserById(id) pipeTo sender
     case DeleteUser(user) => deleteUser(user) pipeTo sender
     case UpdateUser(user) => updateUser(user) pipeTo sender
+    case RegistrateUser(user, address) => registrateUser(user, address) pipeTo sender
     case _ => sender ! UnsupportedOperation
+  }
+
+  private def registrateUser(user: User, address: Address): Future[UserRegistrated] = {
+    log.info("registrateUser ->")
+    val p = Promise[UserRegistrated]
+    (addressService ? CreateAddress(address)).mapTo[AddressCreated].onComplete {
+      case Success(s) => {
+        (self ? CreateUser(User(0, user.firstName, user.lastName, Some(s.id), None)))
+          .mapTo[UserCreated].onComplete  {
+          case Success(s) => {
+            log.debug("registrateUser - success!")
+            p.success(UserRegistrated())
+          }
+          case Failure(f) => {
+            log.error(f, f.getMessage)
+            p.failure(f)
+          }
+        }
+      }
+      case Failure(f) => {
+        log.error(f, f.getMessage)
+        p.failure(f)
+      }
+    }
+    p.future
   }
 
   /**
    * Create user
-   * @param firstName
-   * @param lastName
+   * @param user
    * @return
    */
-  private def createUser(firstName: String, lastName: String): Future[UserCreated] = {
-    log.info(s"createUser first name = $firstName, last name = $lastName")
+  private def createUser(user: User): Future[UserCreated] = {
+    log.info(s"createUser first name = ${user.firstName}, last name = ${user.lastName}")
     val p = Promise[UserCreated]
-    (userRepository ? InsertUser(User(0, firstName, lastName, None, None))).mapTo[Inserted] onComplete {
+    (userRepository ? InsertUser(user)).mapTo[Inserted] onComplete {
       case Success(s) => {
         log.info("createUser - success!")
         p.success(UserCreated(s.id))

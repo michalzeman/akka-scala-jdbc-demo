@@ -18,9 +18,9 @@ with ConversionCheckedTripleEquals
 with ImplicitSender
 with MockitoSugar {
 
-  val dataSourceActor = system.actorOf(DataSourceActor.props, "dataSource")
+  val dataSourceActor = system.actorOf(DataSourceActor.props, DataSourceActor.actorName)
 
-  val jdbcConActor = system.actorOf(JDBCConnectionActor.props(dataSourceActor))
+  val jdbcConActor = system.actorOf(JDBCConnectionActor.props)
 
 
   override protected def beforeAll(): Unit = {

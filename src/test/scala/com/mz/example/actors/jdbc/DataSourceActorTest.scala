@@ -2,6 +2,7 @@ package com.mz.example.actors.jdbc
 
 import akka.actor.ActorSystem
 import akka.testkit.{TestProbe, ImplicitSender, TestKit}
+import com.mz.example.actors.jdbc.DataSourceActor
 import com.mz.example.actors.jdbc.DataSourceActorMessages.{ConnectionResult, GetConnection}
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, BeforeAndAfterAll, FunSuiteLike}
@@ -28,9 +29,9 @@ with MockitoSugar {
   }
 
   test("init dataSource") {
-    val dataSource = system.actorOf(DataSourceActor.props, "dataSourceTest")
+    val dataSource = system.actorOf(DataSourceActor.props, DataSourceActor.actorName)
 //    val result = Await.result((dataSource ? GetConnection), 5.seconds)
-    val result = Await.result((system.actorSelection("/user/dataSourceTest") ? GetConnection), 5.seconds)
+    val result = Await.result((system.actorSelection("/user/"+DataSourceActor.actorName) ? GetConnection), 5.seconds)
     result.isInstanceOf[ConnectionResult] should equal(true)
   }
 }

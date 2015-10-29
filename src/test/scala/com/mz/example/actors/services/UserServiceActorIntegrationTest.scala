@@ -6,7 +6,7 @@ import com.mz.example.actors.jdbc.JDBCConnectionActorMessages.{Commit, Rollback}
 import com.mz.example.actors.jdbc.{JDBCConnectionActor, DataSourceActor}
 import com.mz.example.actors.repositories.{AddressRepositoryActor, UserRepositoryActor}
 import com.mz.example.actors.services.UserServiceActorMessages._
-import com.mz.example.domains.User
+import com.mz.example.domains.{Address, User}
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, BeforeAndAfterAll, FunSuiteLike}
 import org.scalautils.ConversionCheckedTripleEquals
@@ -27,9 +27,9 @@ with MockitoSugar {
 
   implicit val timeOut: akka.util.Timeout = 10000.millisecond
 
-  val dataSourceActor = system.actorOf(DataSourceActor.props, "dataSource")
+  val dataSourceActor = system.actorOf(DataSourceActor.props, DataSourceActor.actorName)
 
-  val jdbcConActor = system.actorOf(JDBCConnectionActor.props(dataSourceActor))
+  val jdbcConActor = system.actorOf(JDBCConnectionActor.props)
 
   test("Create user") {
 
@@ -37,9 +37,11 @@ with MockitoSugar {
 
     val addressRepositoryProps = AddressRepositoryActor.props(jdbcConActor);
 
-    val userService = system.actorOf(UserServiceActor.props(userRepositoryProps, addressRepositoryProps))
+    val addressService = AddressServiceActor.props(userRepositoryProps, addressRepositoryProps)
 
-    val result = Await.result(userService ? CreateUser("FirstNameTest", "LastNameTest"), 1.seconds).asInstanceOf[UserCreated]
+    val userService = system.actorOf(UserServiceActor.props(userRepositoryProps, addressService))
+
+    val result = Await.result(userService ? CreateUser(User(0,"FirstNameTest", "LastNameTest", None, None)), 1.seconds).asInstanceOf[UserCreated]
 
     result.id should not be(0)
 
@@ -51,9 +53,11 @@ with MockitoSugar {
 
     val addressRepositoryProps = AddressRepositoryActor.props(jdbcConActor);
 
-    val userService = system.actorOf(UserServiceActor.props(userRepositoryProps, addressRepositoryProps))
+    val addressService = AddressServiceActor.props(userRepositoryProps, addressRepositoryProps)
 
-    val result = Await.result(userService ? CreateUser("FirstNameTest", "LastNameTest"), 1.seconds).asInstanceOf[UserCreated]
+    val userService = system.actorOf(UserServiceActor.props(userRepositoryProps, addressService))
+
+    val result = Await.result(userService ? CreateUser(User(0,"FirstNameTest", "LastNameTest", None, None)), 1.seconds).asInstanceOf[UserCreated]
 
     Await.result(userService ? UpdateUser(User(result.id, "FirstNameUpdated", "LastNameUpdated", None, None)), 1.seconds).isInstanceOf[UserUpdated] shouldBe true
 
@@ -71,9 +75,11 @@ with MockitoSugar {
 
     val addressRepositoryProps = AddressRepositoryActor.props(jdbcConActor);
 
-    val userService = system.actorOf(UserServiceActor.props(userRepositoryProps, addressRepositoryProps))
+    val addressService = AddressServiceActor.props(userRepositoryProps, addressRepositoryProps)
 
-    val result = Await.result(userService ? CreateUser("FirstNameTest", "LastNameTest"), 1.seconds).asInstanceOf[UserCreated]
+    val userService = system.actorOf(UserServiceActor.props(userRepositoryProps, addressService))
+
+    val result = Await.result(userService ? CreateUser(User(0,"FirstNameTest", "LastNameTest", None, None)), 1.seconds).asInstanceOf[UserCreated]
 
     Await.result((userService ? DeleteUser(User(result.id, "FirstNameTest", "LastNameTest", None, None))), 1.seconds)
 
@@ -82,6 +88,23 @@ with MockitoSugar {
     val resultAfterDelete = Await.result((userService ? FindUserById(result.id)), 1.seconds).asInstanceOf[FoundUsers]
 
     resultAfterDelete.users.size shouldBe 0
+  }
+
+  test("Register user") {
+    val userRepositoryProps = UserRepositoryActor.props(jdbcConActor)
+
+    val addressRepositoryProps = AddressRepositoryActor.props(jdbcConActor);
+
+    val addressService = AddressServiceActor.props(userRepositoryProps, addressRepositoryProps)
+
+    val userService = system.actorOf(UserServiceActor.props(userRepositoryProps, addressService))
+
+    val result = Await.result(userService ? RegistrateUser(User(0,"FirstNameTest", "LastNameTest", None, None),
+      Address(0, "test", "82109", "9A", "testCity")), 1.seconds).asInstanceOf[UserRegistrated]
+
+    result.isInstanceOf[UserRegistrated] shouldBe true
+
+    jdbcConActor ! Rollback
   }
 
   override protected def afterAll(): Unit = {

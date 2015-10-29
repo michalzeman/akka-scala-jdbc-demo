@@ -97,6 +97,8 @@ object DataSourceActor {
   val DATASOURCE_MAXIMUMPOOLSIZE = "akka.dataSource.maximumPoolSize"
   val DATASOURCE_VALIDATIONTIMEOUT = "akka.dataSource.validationTimeout"
 
+  val actorName = "dataSource"
+
   /**
    * Create Props for an actor of this type
    * @return a Props
