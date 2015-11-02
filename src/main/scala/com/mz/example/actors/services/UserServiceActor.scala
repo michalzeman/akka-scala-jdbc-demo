@@ -41,7 +41,7 @@ class UserServiceActor(userRepProps: Props, addressServiceProps: Props) extends 
     log.info("registrateUser ->")
     val p = Promise[UserRegistrated]
     (addressService ? CreateAddress(address)).mapTo[AddressCreated].onComplete {
-      case Success(s) => {
+      case Success(s) =>
         (self ? CreateUser(User(0, user.firstName, user.lastName, Some(s.id), None)))
           .mapTo[UserCreated].onComplete  {
           case Success(s) => {
@@ -53,7 +53,6 @@ class UserServiceActor(userRepProps: Props, addressServiceProps: Props) extends 
             p.failure(f)
           }
         }
-      }
       case Failure(f) => {
         log.error(f, f.getMessage)
         p.failure(f)

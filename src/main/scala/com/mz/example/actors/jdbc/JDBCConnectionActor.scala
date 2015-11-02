@@ -3,6 +3,7 @@ package com.mz.example.actors.jdbc
 import java.sql.{ResultSet, Statement, SQLException, Connection}
 import akka.actor._
 import akka.util.Timeout
+import com.typesafe.config.Config
 import scala.concurrent.{Promise, Future}
 import scala.concurrent.duration._
 import com.mz.example.actors.common.messages.Messages.{RetryOperation, UnsupportedOperation, OperationDone}
@@ -18,13 +19,17 @@ import scala.util.{Failure, Success}
 class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFactory {
 
   import JDBCConnectionActorMessages._
+  import DataSourceActor.SCHEMA
   import context.dispatcher
-
-//  context.watch(dataSourceRef)
 
   private implicit val timeout: Timeout = 1.seconds
 
+  private val sysConfig: Config = context.system.settings.config
+  private val defaultSchema = sysConfig.getString(SCHEMA)
+
   var connection: Option[Connection] = None
+
+  context.become(connectionNotReady)
 
   @throws[RuntimeException](classOf[RuntimeException])
   override def preStart(): Unit = {
@@ -33,26 +38,6 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
   }
 
   override def receive: Receive = {
-    case opr: Insert => {
-      connectionNotReady(opr, sender)
-      askForConnection
-    }
-    case opr: Update => {
-      connectionNotReady(opr, sender)
-      askForConnection
-    }
-    case opr: Delete => {
-      connectionNotReady(opr, sender)
-      askForConnection
-    }
-    case Select(query, mapper) => {
-      connectionNotReady(Select(query, mapper), sender)
-      askForConnection
-    }
-    case RetryOperation(opr, orgSender) => {
-      log.warning("JDBCConnectionActor is in the wrong state!")
-      throw new RuntimeException("JDBCConnectionActor is in the wrong state!")
-    }
     case UnsupportedOperation => log.debug(s"Receive => sender sent UnsupportedOperation $sender")
     case obj: Any => {
       log.warning(s"receive => Unsupported operation object ${obj.getClass}")
@@ -60,23 +45,39 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
     }
   }
 
-  private def connectionNotReady(opr: Any, orgSender: ActorRef): Unit = {
-    log.info(s"Connection is not jet ready!")
+  private def connectionNotReady: Receive = {
+    case obj: Any => {
+      log.info(s"Connection is not jet ready!")
+      retryOperation(obj, sender)
+    }
+    case UnsupportedOperation => log.debug(s"Receive => sender sent UnsupportedOperation $sender")
+  }
+
+  private def connectionClosed: Receive = {
+    case obj: Any => {
+      log.info(s"Connection is closed! Going to ask new connection!")
+      retryOperation(obj, sender)
+      askForConnection
+    }
+  }
+
+  def retryOperation(obj: Any, orgSender: ActorRef): Unit = {
     context.system.scheduler.scheduleOnce(
-      150.millisecond, self, RetryOperation(opr, orgSender))
+      150.millisecond, self, RetryOperation(obj, orgSender))
   }
 
   private def waitingForConnection: Receive = {
     case ConnectionResult(con) => {
       log.debug("Connection returned!")
+      con.setSchema(defaultSchema)
       connection = Some(con)
       context.become(connectionReady)
     }
-    case opr: Insert => connectionNotReady(opr, sender)
-    case opr: Update => connectionNotReady(opr, sender)
-    case opr: Delete => connectionNotReady(opr, sender)
-    case Select(query, mapper) => connectionNotReady(Select(query, mapper), sender)
-    case RetryOperation(opr, orgSender) => connectionNotReady(opr, orgSender)
+    case opr: Insert => retryOperation(opr, sender)
+    case opr: Update => retryOperation(opr, sender)
+    case opr: Delete => retryOperation(opr, sender)
+    case Select(query, mapper) => retryOperation(Select(query, mapper), sender)
+    case RetryOperation(opr, orgSender) => retryOperation(opr, orgSender)
     case UnsupportedOperation => log.debug(s"Receive => sender sent UnsupportedOperation $sender")
     case obj: Any => {
       log.warning(s"receive => Unsupported operation object ${obj.getClass}")
@@ -109,7 +110,6 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
    */
   private def askForConnection: Unit = {
     context.become(waitingForConnection)
-    //system.actorSelection("/user/"+DataSourceActor.actorName) ? GetConnection
     context.actorSelection(actorPath) ! GetConnection
   }
 
@@ -208,7 +208,7 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
           throw e
         }
       } finally {
-        context.unbecome()
+        context.become(connectionClosed)
         if (!con.isClosed) {
           con.close()
         }
@@ -231,7 +231,7 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
           throw e
         }
       } finally {
-        context.unbecome()
+        context.become(connectionClosed)
         if (!con.isClosed) {
           con.close()
         }

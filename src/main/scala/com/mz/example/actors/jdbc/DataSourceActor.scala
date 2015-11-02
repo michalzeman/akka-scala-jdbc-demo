@@ -35,7 +35,7 @@ class DataSourceActor extends Actor with ActorLogging{
 //    Future[ConnectionResult] {
       try {
         val con = dataSource.getConnection
-        con.setSchema(defaultSchema)
+        //con.setSchema(defaultSchema)
         sender ! ConnectionResult(con)
 //        ConnectionResult(con)
       } catch {
