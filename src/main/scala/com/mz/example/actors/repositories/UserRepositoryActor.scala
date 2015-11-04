@@ -12,13 +12,14 @@ import com.mz.example.domains.sql.mappers.UserMapper
 import scala.concurrent.duration._
 import scala.concurrent.{Future, Promise}
 import scala.util.{Failure, Success}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
  * Created by zemi on 8. 10. 2015.
  */
 class UserRepositoryActor(jdbcActor: ActorRef) extends Actor with ActorLogging with UserMapper {
 
-  import context.dispatcher
+  //import context.dispatcher
 
   context.watch(jdbcActor)
 
@@ -41,9 +42,13 @@ class UserRepositoryActor(jdbcActor: ActorRef) extends Actor with ActorLogging w
   private def selectById(id: Long): Future[Option[User]] = {
     log.debug("SelectById")
     val p = Promise[Option[User]]
+    log.debug("UserRepositoryActor going to selectId id = "+Thread.currentThread().getId())
     (jdbcActor ? Select(s"select $ID_COL, $LAST_NAME_COL, $FIRST_NAME_COL, $ADDRESS_ID_COL " +
       s"from $TABLE_NAME where $ID_COL = $id", mapResultSet)).mapTo[SelectResult[Option[User]]] onComplete {
-      case Success(result) => p.success(result.result)
+      case Success(result) => {
+        log.debug("UserRepositoryActor future execution of selectById id = "+Thread.currentThread().getId())
+        p.success(result.result)
+      }
       case Failure(f) => {
         log.error(f, f.getMessage)
         p.failure(f)
@@ -58,6 +63,7 @@ class UserRepositoryActor(jdbcActor: ActorRef) extends Actor with ActorLogging w
    */
   private def update(user: User): Future[Boolean] = {
     log.debug("update")
+    log.debug("UserRepositoryActor going to update id = "+Thread.currentThread().getId())
     val p = Promise[Boolean]
     Future {
       val addressIdColm = user.addressId match {
@@ -69,7 +75,10 @@ class UserRepositoryActor(jdbcActor: ActorRef) extends Actor with ActorLogging w
            $LAST_NAME_COL = '${user.lastName}'""".stripMargin.concat(addressIdColm)
       val whereClause = s"""WHERE $ID_COL = ${user.id}"""
       (jdbcActor ? Update(updateQuery.concat(whereClause))).mapTo[Boolean] onComplete {
-        case Success(s) => p.success(s)
+        case Success(s) => {
+          log.debug("UserRepositoryActor future execution of update id = "+Thread.currentThread().getId())
+          p.success(s)
+        }
         case Failure(f) => {
           log.error(f, f.getMessage)
           p.failure(f)
@@ -86,9 +95,13 @@ class UserRepositoryActor(jdbcActor: ActorRef) extends Actor with ActorLogging w
    */
   private def delete(id: Long): Future[Boolean] = {
     log.debug("delete")
+    log.debug("UserRepositoryActor going to delete id = "+Thread.currentThread().getId())
     val p = Promise[Boolean]
     (jdbcActor ? Delete(s"DELETE FROM $TABLE_NAME WHERE id = $id")).mapTo[Boolean] onComplete {
-      case Success(s) => p.success(s)
+      case Success(s) => {
+        log.debug("UserRepositoryActor future execution of delete id = "+Thread.currentThread().getId())
+        p.success(s)
+      }
       case Failure(f) => {
         log.error(f, f.getMessage)
         p.failure(f)
@@ -104,8 +117,10 @@ class UserRepositoryActor(jdbcActor: ActorRef) extends Actor with ActorLogging w
    */
   private def insert(user: User): Future[Inserted] = {
     log.debug("insert")
+    log.debug("UserRepositoryActor going to insert id = "+Thread.currentThread().getId())
     val p = Promise[Inserted]
     Future {
+      log.debug("UserRepositoryActor future execution of insert id = "+Thread.currentThread().getId())
       val addressId = user.addressId match {
         case Some(addressId) => s""", $addressId"""
         case None => ""

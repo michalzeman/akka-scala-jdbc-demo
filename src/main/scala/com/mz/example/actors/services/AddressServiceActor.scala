@@ -1,6 +1,5 @@
 package com.mz.example.actors.services
 
-import akka.actor.Actor.Receive
 import akka.actor.{ActorLogging, Actor, Props}
 import akka.util.Timeout
 import akka.pattern._
@@ -12,13 +11,14 @@ import com.mz.example.domains.Address
 import scala.concurrent.{Promise, Future}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
  * Created by zemi on 23. 10. 2015.
  */
 class AddressServiceActor(userRepProps: Props, addressRepProps: Props) extends Actor with ActorLogging {
 
-  import context.dispatcher
+//  import context.dispatcher
 
   private implicit val timeout: Timeout = 2000 milliseconds
 

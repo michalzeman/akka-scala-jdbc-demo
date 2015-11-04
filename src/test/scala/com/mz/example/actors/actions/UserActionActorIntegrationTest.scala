@@ -32,7 +32,7 @@ with MockitoSugar {
   test("Registrate user") {
     val futures =
       for (i <- 1 to 10000) yield {
-        Thread sleep 5
+        Thread sleep 3
         val userAction = system.actorOf(Props[UserActionActor])
         (userAction ? RegistrateUser(User(0, "FirstNameTest", "LastNameTest", None, None),
           Address(0, "test", "82109", "9A", "testCity")))
@@ -42,12 +42,12 @@ with MockitoSugar {
 
   }
 
-  test("test one") {
-    val userAction = system.actorOf(Props[UserActionActor])
-
-    (userAction ? RegistrateUser(User(0, "FirstNameTest", "LastNameTest", None, None),
-      Address(0, "test", "82109", "9A", "testCity")))
-  }
+//  test("test one") {
+//    val userAction = system.actorOf(Props[UserActionActor])
+//
+//    (userAction ? RegistrateUser(User(0, "FirstNameTest", "LastNameTest", None, None),
+//      Address(0, "test", "82109", "9A", "testCity")))
+//  }
 
   override protected def afterAll(): Unit = {
     system.shutdown()

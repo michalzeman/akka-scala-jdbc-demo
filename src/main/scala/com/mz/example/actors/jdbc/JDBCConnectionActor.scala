@@ -9,9 +9,8 @@ import scala.concurrent.duration._
 import com.mz.example.actors.common.messages.Messages.{RetryOperation, UnsupportedOperation, OperationDone}
 import com.mz.example.actors.factories.jdbc.DataSourceActorFactory
 import com.mz.example.actors.jdbc.DataSourceActorMessages.{ConnectionResult, GetConnection}
+import scala.concurrent.ExecutionContext.Implicits.global
 import akka.pattern._
-
-import scala.util.{Failure, Success}
 
 /**
  * Created by zemi on 1. 10. 2015.
@@ -20,7 +19,7 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
 
   import JDBCConnectionActorMessages._
   import DataSourceActor.SCHEMA
-  import context.dispatcher
+  //import context.dispatcher
 
   private implicit val timeout: Timeout = 1.seconds
 
@@ -29,12 +28,12 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
 
   var connection: Option[Connection] = None
 
-  context.become(connectionNotReady)
+  context.become(connectionClosed)
 
   @throws[RuntimeException](classOf[RuntimeException])
   override def preStart(): Unit = {
-    log.info("init of Actor")
-    askForConnection
+//    log.info("init of Actor")
+//    askForConnection
   }
 
   override def receive: Receive = {
@@ -54,6 +53,7 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
   }
 
   private def connectionClosed: Receive = {
+    case RetryOperation(opr, orgSender) => retryOperation(opr, orgSender)
     case obj: Any => {
       log.info(s"Connection is closed! Going to ask new connection!")
       retryOperation(obj, sender)
@@ -61,9 +61,14 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
     }
   }
 
+  /**
+   * in case that connection is not ready it is scheduled sneding nex same message
+   * @param obj - message
+   * @param orgSender - sender of original message
+   */
   def retryOperation(obj: Any, orgSender: ActorRef): Unit = {
     context.system.scheduler.scheduleOnce(
-      150.millisecond, self, RetryOperation(obj, orgSender))
+      9.millisecond, self, RetryOperation(obj, orgSender))
   }
 
   private def waitingForConnection: Receive = {

@@ -1,6 +1,5 @@
 package com.mz.example.actors.services
 
-import akka.actor.Actor.Receive
 import akka.actor.{Props, ActorRef, ActorLogging, Actor}
 import akka.util.Timeout
 import com.mz.example.actors.common.messages.Messages.UnsupportedOperation
@@ -11,7 +10,7 @@ import com.mz.example.actors.services.UserServiceActorMessages._
 import com.mz.example.domains.{Address, User}
 import akka.pattern._
 import scala.concurrent.duration._
-
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Promise, Future}
 import scala.util.{Failure, Success}
 
@@ -20,7 +19,7 @@ import scala.util.{Failure, Success}
  */
 class UserServiceActor(userRepProps: Props, addressServiceProps: Props) extends Actor with ActorLogging {
 
-  import context.dispatcher
+//  import context.dispatcher
 
   private implicit val timeout: Timeout = 2000 milliseconds
 

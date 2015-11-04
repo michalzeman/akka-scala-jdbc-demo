@@ -21,7 +21,6 @@ class DataSourceActor extends Actor with ActorLogging{
 
   private val sysConfig: Config = context.system.settings.config
   private val dataSource = initDataSource
-  private val defaultSchema = sysConfig.getString(SCHEMA)
 
   override def receive: Receive = {
     case GetConnection => getConnection
@@ -32,12 +31,9 @@ class DataSourceActor extends Actor with ActorLogging{
    * Return connection from the connection pool
    */
   private def getConnection : Unit = {
-//    Future[ConnectionResult] {
       try {
         val con = dataSource.getConnection
-        //con.setSchema(defaultSchema)
         sender ! ConnectionResult(con)
-//        ConnectionResult(con)
       } catch {
         case e:SQLException => {
           log.error(e, e.getMessage)

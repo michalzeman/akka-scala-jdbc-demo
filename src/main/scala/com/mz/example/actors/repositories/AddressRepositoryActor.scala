@@ -12,13 +12,14 @@ import com.mz.example.domains.{Address}
 import scala.concurrent.{Promise, Future}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
  * Created by zemo on 17/10/15.
  */
 class AddressRepositoryActor(jdbcActor: ActorRef) extends Actor with ActorLogging with AddressMapper {
 
-  import context.dispatcher
+//  import context.dispatcher
 
   context.watch(jdbcActor)
 
