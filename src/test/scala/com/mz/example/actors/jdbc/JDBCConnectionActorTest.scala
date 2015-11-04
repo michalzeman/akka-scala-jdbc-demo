@@ -31,7 +31,7 @@ with ConversionCheckedTripleEquals
 with ImplicitSender
 with MockitoSugar {
 
-//  implicit val timeOut: akka.util.Timeout = 200.millisecond
+  implicit val timeOut: akka.util.Timeout = 2000.millisecond
 //
 //  override def afterAll(): Unit = {
 //    system.shutdown()
@@ -72,4 +72,21 @@ with MockitoSugar {
 //    def mapper (resultSet: ResultSet): Option[User] = {None}
 //    Await.result((jdbcActor ? Select(query, mapper)), 5.seconds).isInstanceOf[SelectResult[Option[User]]] should equal(true)
 //  }
+
+  test("GetConnection timeout") {
+    val jdbcActor = system.actorOf(JDBCConnectionActor.props)
+    val query = "Select from users where id = 0"
+    def mapper (resultSet: ResultSet): Option[User] = {None}
+    jdbcActor ! Select(query, mapper)
+    expectNoMsg(2 seconds)
+  }
+
+  test("select operation") {
+    system.actorOf(DataSourceActor.props, DataSourceActor.actorName)
+    val jdbcActor = system.actorOf(JDBCConnectionActor.props)
+    val query = "Select from users where id = 0"
+    def mapper (resultSet: ResultSet): Option[User] = {None}
+    jdbcActor ! Select(query, mapper)
+    expectMsgAnyOf(SelectResult(None))
+  }
 }

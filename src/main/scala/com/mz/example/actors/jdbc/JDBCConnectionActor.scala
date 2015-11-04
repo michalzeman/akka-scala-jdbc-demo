@@ -27,6 +27,7 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
   private val defaultSchema = sysConfig.getString(SCHEMA)
 
   var connection: Option[Connection] = None
+  val conInterceptorActor = context.actorOf(ConnectionInterceptorActor.props)
 
   context.become(connectionClosed)
 
@@ -74,6 +75,7 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
   private def waitingForConnection: Receive = {
     case ConnectionResult(con) => {
       log.debug("Connection returned!")
+      conInterceptorActor ! ActorStop
       con.setSchema(defaultSchema)
       connection = Some(con)
       context.become(connectionReady)
@@ -116,6 +118,7 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
   private def askForConnection: Unit = {
     context.become(waitingForConnection)
     context.actorSelection(actorPath) ! GetConnection
+    conInterceptorActor ! GetConnection
   }
 
   /**
