@@ -1,6 +1,7 @@
 package com.mz.example.actors.factories.jdbc
 
 import akka.actor.{ActorContext, ActorSelection, ActorRef, ActorSystem}
+import com.mz.example.actors.factories.supervisors.DataSourceSupervisorActorFactory
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -8,7 +9,7 @@ import scala.concurrent.duration._
 /**
  * Created by zemo on 05/10/15.
  */
-trait DataSourceActorFactory {
+trait DataSourceActorFactory extends DataSourceSupervisorActorFactory {
 
   val actorPath = "/user/dataSource"
 
