@@ -32,10 +32,10 @@ with ImplicitSender
 with MockitoSugar {
 
   implicit val timeOut: akka.util.Timeout = 2000.millisecond
-//
-//  override def afterAll(): Unit = {
-//    system.shutdown()
-//  }
+
+  override def afterAll(): Unit = {
+    system.shutdown()
+  }
 //
 //  test("init") {
 //    val jdbcActor = system.actorOf(JDBCConnectionActor.props)

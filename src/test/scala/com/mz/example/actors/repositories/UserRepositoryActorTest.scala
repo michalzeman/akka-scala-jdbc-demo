@@ -1,6 +1,6 @@
 package com.mz.example.actors.repositories
 
-import com.mz.example.actors.jdbc.JDBCConnectionActorMessages.{Rollback, Commit}
+import com.mz.example.actors.jdbc.JDBCConnectionActorMessages.{SelectResult, Rollback, Commit}
 import com.mz.example.actors.repositories.common.AbstractRepositoryActorTest
 import akka.pattern.ask
 import com.mz.example.actors.repositories.common.messages.AddressRepositoryActorMessages.InsertAddress
@@ -20,24 +20,33 @@ class UserRepositoryActorTest extends AbstractRepositoryActorTest {
   test("CRUD operations") {
     val userRepository = system.actorOf(UserRepositoryActor.props(jdbcConActor))
     val addressRepository = system.actorOf(AddressRepositoryActor.props(jdbcConActor))
-    val resultAddress = Await.result(addressRepository ? InsertAddress(Address(0, "test", "82109", "9A", "testCity")), 9.seconds).asInstanceOf[Inserted]
+    var addrIdRes:Inserted = null
+    addressRepository ! InsertAddress(Address(0, "test", "82109", "9A", "testCity"))
+    receiveWhile(2000 millis) {
+      case addrId:Inserted => addrIdRes = addrId
+    }
 
-    val result = Await.result(userRepository ? InsertUser(User(0, "test", "Test 2", Option(resultAddress.id), None)), 9.seconds).asInstanceOf[Inserted]
-    println(s"Id of inserted is ${result.id}")
-    result.id should not be 0
+    val user = User(0, "test", "Test 2", Option(addrIdRes.id), None)
+    userRepository ! InsertUser(user)
+    var result: Inserted = null
+    receiveWhile(500 millis) {
+      case inserted: Inserted => result = inserted
+    }
 
-    val resultSelect = Await.result(userRepository ? SelectById(result.id), 9.seconds).asInstanceOf[Some[User]]
-    resultSelect.get.firstName shouldBe("test")
+    val userSel = User(result.id, "test", "Test 2", Option(addrIdRes.id), None)
+    userRepository ! SelectById(result.id)
+    expectMsg(Some(userSel))
 
-    Await.result(userRepository ? UpdateUser(User(result.id, "UpdateTest", "UpdateTest 2", None, None)), 9.seconds).asInstanceOf[Boolean] shouldBe true
-    val resultSelectUpdated = Await.result(userRepository ? SelectById(result.id), 9.seconds).asInstanceOf[Some[User]]
-    resultSelectUpdated.get.firstName shouldBe("UpdateTest")
-    resultSelectUpdated.get.lastName shouldBe("UpdateTest 2")
+    val user2 = User(result.id, "UpdateTest", "UpdateTest 2", Option(addrIdRes.id), None)
+    userRepository ! UpdateUser(user2)
+    expectMsg(true)
+    userRepository ! SelectById(result.id)
+    expectMsg(Some(user2))
 
-    Await.result(userRepository ? DeleteUser(result.id), 9.seconds).asInstanceOf[Boolean] shouldBe true
-
-    val resultSelectDeleted = Await.result(userRepository ? SelectById(result.id), 9.seconds)
-    resultSelectDeleted should not be isInstanceOf[Some[User]]
+    userRepository ! DeleteUser(result.id)
+    expectMsg(true)
+    userRepository ! SelectById(result.id)
+    expectMsgAnyOf(None)
   }
 
   override protected def afterAll(): Unit = {
