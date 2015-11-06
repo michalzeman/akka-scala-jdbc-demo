@@ -21,6 +21,25 @@ trait SqlDomainMapper[+E] {
   }
 
   /**
+   * Map ResultSet to list
+   * @param resultSet
+   * @return List[E]
+   */
+  def mapResultSetList(resultSet: ResultSet): Seq[E] = {
+//    def mapList(restSet: ResultSet, tail:Stream[E]): Stream[E] = {
+//      if (restSet.next()) {
+//        mapResultSetDomain(restSet)#::mapList(restSet,tail)
+//      } else tail
+//    }
+//    mapList(resultSet, Stream.empty)
+    val list = scala.collection.mutable.MutableList[E]()
+    while(resultSet.next()) {
+      list += mapResultSetDomain(resultSet)
+    }
+    list
+  }
+
+  /**
    * Map ResultSet to Domain object
    * @param resultSet
    * @return

@@ -9,4 +9,6 @@ package object messages {
 
   case class SelectById(id: Long)
 
+  case object SelectAll
+
 }

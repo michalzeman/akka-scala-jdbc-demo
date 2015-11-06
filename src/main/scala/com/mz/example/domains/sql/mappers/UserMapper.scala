@@ -34,8 +34,15 @@ trait UserMapper extends SqlDomainMapper[User] {
    * @return User
    */
   def mapResultSetDomain(resultSet: ResultSet): User = {
+    try {
       User(resultSet.getLong(ID_COL), resultSet.getString(FIRST_NAME_COL), resultSet.getString(LAST_NAME_COL),
         Option(resultSet.getLong(ADDRESS_ID_COL)), None)
+    } catch {
+      case e:Exception => {
+        e.getMessage
+        throw e
+      }
+    }
   }
 
 }

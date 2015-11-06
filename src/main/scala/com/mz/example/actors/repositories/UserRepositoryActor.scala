@@ -5,7 +5,7 @@ import akka.pattern._
 import akka.util.Timeout
 import com.mz.example.actors.common.messages.Messages.UnsupportedOperation
 import com.mz.example.actors.jdbc.JDBCConnectionActorMessages._
-import com.mz.example.actors.repositories.common.messages.{Inserted, SelectById, UserRepositoryActorMessages}
+import com.mz.example.actors.repositories.common.messages.{SelectAll, Inserted, SelectById, UserRepositoryActorMessages}
 import UserRepositoryActorMessages._
 import com.mz.example.domains.User
 import com.mz.example.domains.sql.mappers.UserMapper
@@ -30,8 +30,30 @@ class UserRepositoryActor(jdbcActor: ActorRef) extends Actor with ActorLogging w
     case UpdateUser(user) => update(user) pipeTo sender
     case DeleteUser(id) => delete(id) pipeTo sender
     case InsertUser(user) => insert(user) pipeTo sender
+    case SelectAll => selectAll pipeTo sender
     case UnsupportedOperation => log.debug(s"sender sent UnsupportedOperation $sender")
     case _ => sender ! UnsupportedOperation
+  }
+
+  /**
+   * Select all users
+   * @return
+   */
+  private def selectAll: Future[List[User]] = {
+    log.debug("selectAll")
+    val p = Promise[List[User]]
+    (jdbcActor ? Select(s"select $ID_COL, $LAST_NAME_COL, $FIRST_NAME_COL, $ADDRESS_ID_COL " +
+      s"from $TABLE_NAME ", mapResultSetList)).mapTo[SelectResult[List[User]]] onComplete {
+      case Success(result) => {
+        log.debug("selectAll - success!")
+        p.success(result.result)
+      }
+      case Failure(f) => {
+        log.error(f, f.getMessage)
+        p.failure(f)
+      }
+    }
+    p.future
   }
 
   /**
