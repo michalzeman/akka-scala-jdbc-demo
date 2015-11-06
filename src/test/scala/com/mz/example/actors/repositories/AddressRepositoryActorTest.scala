@@ -20,21 +20,27 @@ class AddressRepositoryActorTest extends AbstractRepositoryActorTest {
   test("CRUD operations") {
     val addressRepository = system.actorOf(AddressRepositoryActor.props(jdbcConActor))
     //Address(id: Long, street: String, zip: String, houseNumber: String, city: String)
-    val result = Await.result(addressRepository ? InsertAddress(Address(0, "test", "82109", "9A", "testCity")), 9.seconds).asInstanceOf[Inserted]
+     addressRepository ! InsertAddress(Address(0, "test", "82109", "9A", "testCity"))
+    val result = expectMsgType[Inserted]
     println(s"Id of inserted is ${result.id}")
     result.id should not be 0
 
-    val resultSelect = Await.result(addressRepository ? SelectById(result.id), 9.seconds).asInstanceOf[Some[Address]]
+    addressRepository ! SelectById(result.id)
+    val resultSelect = expectMsgType[Some[Address]]
     resultSelect.get.street shouldBe("test")
 
-    Await.result(addressRepository ? UpdateAddress(Address(result.id, "test 2", "83109", "10A", "testCityBA")), 9.seconds).asInstanceOf[Boolean] shouldBe true
-    val resultSelectUpdated = Await.result(addressRepository ? SelectById(result.id), 9.seconds).asInstanceOf[Some[Address]]
+    addressRepository ! UpdateAddress(Address(result.id, "test 2", "83109", "10A", "testCityBA"))
+    expectMsg(true)
+    addressRepository ! SelectById(result.id)
+    val resultSelectUpdated = expectMsgType[Some[Address]]
     resultSelectUpdated.get.street shouldBe("test 2")
     resultSelectUpdated.get.zip shouldBe("83109")
 
-    Await.result(addressRepository ? DeleteAddress(result.id), 9.seconds).asInstanceOf[Boolean] shouldBe true
+    addressRepository ! DeleteAddress(result.id)
+    expectMsg(true)
 
-    val resultSelectDeleted = Await.result(addressRepository ? SelectById(result.id), 9.seconds)
+    addressRepository ! SelectById(result.id)
+    val resultSelectDeleted = expectMsgType[Option[Address]]
     resultSelectDeleted should not be isInstanceOf[Some[Address]]
   }
 

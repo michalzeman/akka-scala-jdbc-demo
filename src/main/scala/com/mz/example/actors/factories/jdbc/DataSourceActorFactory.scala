@@ -1,7 +1,8 @@
 package com.mz.example.actors.factories.jdbc
 
-import akka.actor.{ActorContext, ActorSelection, ActorRef, ActorSystem}
+import akka.actor._
 import com.mz.example.actors.factories.supervisors.DataSourceSupervisorActorFactory
+import com.mz.example.actors.jdbc.DataSourceActor
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -11,10 +12,9 @@ import scala.concurrent.duration._
  */
 trait DataSourceActorFactory extends DataSourceSupervisorActorFactory {
 
-  val actorPath = "/user/dataSource"
+  val actorPath = supervisorActorPath+"/"+ DataSourceActor.actorName
 
-  def selectActor(implicit context: ActorContext): Future[ActorRef] = {
-    implicit val dispatcher = context.dispatcher
-    context.actorSelection(actorPath).resolveOne(100 milliseconds)
+  def selectDataSourceActor(implicit context: ActorRefFactory): ActorSelection = {
+    context.actorSelection(actorPath)
   }
 }

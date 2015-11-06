@@ -21,17 +21,12 @@ class UserActionActor extends Actor with ActorLogging {
   import context.dispatcher
 
   val jdbcConActor = context.actorOf(JDBCConnectionActor.props)
-
   context.watch(jdbcConActor)
 
   val userRepositoryProps = UserRepositoryActor.props(jdbcConActor)
-
   val addressRepositoryProps = AddressRepositoryActor.props(jdbcConActor);
-
   val addressService = AddressServiceActor.props(userRepositoryProps, addressRepositoryProps)
-
   val userService = context.actorOf(UserServiceActor.props(userRepositoryProps, addressService))
-
   context.watch(userService)
 
   implicit val timeout: Timeout = 5 seconds

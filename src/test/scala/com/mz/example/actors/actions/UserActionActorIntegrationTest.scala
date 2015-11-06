@@ -4,6 +4,7 @@ import akka.actor.{Props, ActorSystem}
 import akka.testkit.{JavaTestKit, ImplicitSender, TestKit}
 import com.mz.example.actors.jdbc.DataSourceActor
 import com.mz.example.actors.services.UserServiceActorMessages.RegistrateUser
+import com.mz.example.actors.supervisors.{CreatedActorMsg, DataSourceSupervisorActor}
 import com.mz.example.domains.{Address, User}
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, BeforeAndAfterAll, FunSuiteLike}
@@ -27,7 +28,7 @@ with MockitoSugar {
 
   import system.dispatcher
 
-  val dataSourceActor = system.actorOf(DataSourceActor.props, DataSourceActor.actorName)
+  val dataSourceSupervisor = system.actorOf(DataSourceSupervisorActor.props, DataSourceSupervisorActor.actorName)
 
   test("Registrate user") {
     val futures =

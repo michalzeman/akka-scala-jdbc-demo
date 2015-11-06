@@ -6,6 +6,7 @@ import akka.testkit.TestKit
 import akka.actor.ActorSystem
 import com.mz.example.actors.jdbc.DataSourceActorMessages.{ConnectionResult, GetConnection}
 import com.mz.example.actors.jdbc.JDBCConnectionActorMessages._
+import com.mz.example.actors.supervisors.{CreatedActorMsg, DataSourceSupervisorActor}
 import com.mz.example.domains.User
 import org.scalatest.FunSuiteLike
 import org.scalatest.BeforeAndAfterAll
@@ -82,7 +83,7 @@ with MockitoSugar {
   }
 
   test("select operation") {
-    system.actorOf(DataSourceActor.props, DataSourceActor.actorName)
+    val dataSourceSupervisor = system.actorOf(DataSourceSupervisorActor.props, DataSourceSupervisorActor.actorName)
     val jdbcActor = system.actorOf(JDBCConnectionActor.props)
     val query = "Select from users where id = 0"
     def mapper (resultSet: ResultSet): Option[User] = {None}

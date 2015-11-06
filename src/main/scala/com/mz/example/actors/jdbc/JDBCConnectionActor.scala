@@ -117,7 +117,7 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
    */
   private def askForConnection: Unit = {
     context.become(waitingForConnection)
-    context.actorSelection(actorPath) ! GetConnection
+    selectDataSourceActor ! GetConnection
     conInterceptorActor ! GetConnection
   }
 

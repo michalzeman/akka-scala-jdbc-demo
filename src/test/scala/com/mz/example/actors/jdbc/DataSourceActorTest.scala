@@ -1,9 +1,11 @@
 package com.mz.example.actors.jdbc
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{TestProbe, ImplicitSender, TestKit}
+import com.mz.example.actors.factories.jdbc.DataSourceActorFactory
 import com.mz.example.actors.jdbc.DataSourceActor
 import com.mz.example.actors.jdbc.DataSourceActorMessages.{ConnectionResult, GetConnection}
+import com.mz.example.actors.supervisors.{CreatedActorMsg, DataSourceSupervisorActor}
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, BeforeAndAfterAll, FunSuiteLike}
 import org.scalautils.ConversionCheckedTripleEquals
@@ -20,7 +22,8 @@ with BeforeAndAfterAll
 with Matchers
 with ConversionCheckedTripleEquals
 with ImplicitSender
-with MockitoSugar {
+with MockitoSugar
+with DataSourceActorFactory {
 
   implicit val timeOut: akka.util.Timeout = 2000.millisecond
 
@@ -29,9 +32,8 @@ with MockitoSugar {
   }
 
   test("init dataSource") {
-    val dataSource = system.actorOf(DataSourceActor.props, DataSourceActor.actorName)
-//    val result = Await.result((dataSource ? GetConnection), 5.seconds)
-    val result = Await.result((system.actorSelection("/user/"+DataSourceActor.actorName) ? GetConnection), 5.seconds)
-    result.isInstanceOf[ConnectionResult] should equal(true)
+    val dataSourceSupervisor = system.actorOf(DataSourceSupervisorActor.props, DataSourceSupervisorActor.actorName)
+    selectDataSourceActor(system) ! GetConnection
+    expectMsgType[ConnectionResult]
   }
 }
