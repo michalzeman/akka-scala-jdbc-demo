@@ -36,6 +36,12 @@ class UserServiceActor(userRepProps: Props, addressServiceProps: Props) extends 
     case _ => sender ! UnsupportedOperation
   }
 
+  @throws[Exception](classOf[Exception])
+  override def postStop(): Unit = {
+    log.debug("Actor stop")
+    super.postStop()
+  }
+
   private def registrateUser(user: User, address: Address): Future[UserRegistrated] = {
     log.info("registrateUser ->")
     val p = Promise[UserRegistrated]

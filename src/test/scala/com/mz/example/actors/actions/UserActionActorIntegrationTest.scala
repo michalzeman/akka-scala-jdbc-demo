@@ -1,6 +1,6 @@
 package com.mz.example.actors.actions
 
-import akka.actor.{Props, ActorSystem}
+import akka.actor.{PoisonPill, Props, ActorSystem}
 import akka.testkit.{JavaTestKit, ImplicitSender, TestKit}
 import com.mz.example.actors.jdbc.DataSourceActor
 import com.mz.example.actors.services.UserServiceActorMessages.RegistrateUser
@@ -41,6 +41,15 @@ with MockitoSugar {
 
     for {future <- futures} yield Await.result(future, 1 minutes)
 
+  }
+
+  test("Parent acotr stop") {
+    val userAction = system.actorOf(Props[UserActionActor])
+    userAction ! PoisonPill
+    expectNoMsg(200 microseconds)
+    userAction ! RegistrateUser(User(0, "FirstNameTest", "LastNameTest", None, None)
+      ,Address(0, "test", "82109", "9A", "testCity"))
+    expectNoMsg(5 seconds)
   }
 
 //  test("test one") {
