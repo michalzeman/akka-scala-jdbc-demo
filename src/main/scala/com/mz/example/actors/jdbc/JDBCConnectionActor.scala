@@ -2,14 +2,11 @@ package com.mz.example.actors.jdbc
 
 import java.sql.{ResultSet, Statement, SQLException, Connection}
 import akka.actor._
-import akka.util.Timeout
 import com.typesafe.config.Config
-import scala.concurrent.{Promise, Future}
 import scala.concurrent.duration._
-import com.mz.example.actors.common.messages.Messages.{RetryOperation, UnsupportedOperation, OperationDone}
+import com.mz.example.actors.common.messages.Messages.{RetryOperation, UnsupportedOperation}
 import com.mz.example.actors.factories.jdbc.DataSourceActorFactory
 import com.mz.example.actors.jdbc.DataSourceActorMessages.{ConnectionResult, GetConnection}
-import akka.pattern._
 
 /**
  * Created by zemi on 1. 10. 2015.
@@ -18,10 +15,7 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
 
   import JDBCConnectionActorMessages._
   import DataSourceActor.SCHEMA
-  import scala.concurrent.ExecutionContext.Implicits.global
-  //import context.dispatcher
-
-  private implicit val timeout: Timeout = 1.seconds
+  import context.dispatcher
 
   private val sysConfig: Config = context.system.settings.config
   private val defaultSchema = sysConfig.getString(SCHEMA)
@@ -84,15 +78,15 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
 
   private def connectionReady: Receive = {
     case RetryOperation(message, senderOrg) => message match {
-      case Insert(query) => insert(query) pipeTo senderOrg
-      case Update(query) => update(query) pipeTo senderOrg
-      case Delete(query) => delete(query) pipeTo senderOrg
-      case Select(query, mapper) => select(query, mapper) pipeTo senderOrg
+      case Insert(query) => insert(query, senderOrg)
+      case Update(query) => update(query, senderOrg)
+      case Delete(query) => delete(query, senderOrg)
+      case Select(query, mapper) => select(query, mapper, senderOrg)
     }
-    case Insert(query) => insert(query) pipeTo sender
-    case Update(query) => update(query) pipeTo sender
-    case Delete(query) => delete(query) pipeTo sender
-    case Select(query, mapper) =>  select(query, mapper) pipeTo sender
+    case Insert(query) => insert(query, sender)
+    case Update(query) => update(query, sender)
+    case Delete(query) => delete(query, sender)
+    case Select(query, mapper) =>  select(query, mapper, sender)
     case Commit => commit
     case Rollback => rollback
     case UnsupportedOperation => log.debug(s"sender sent UnsupportedOperation $sender")
@@ -126,26 +120,21 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
    * @param query
    * @return
    */
-  private def select[E](query: String, mapper: ResultSet => E): Future[SelectResult[E]] = {
-    val p = Promise[SelectResult[E]]
-    Future {
-      connection.map(con => {
-        log.info(s"Select query = $query")
-        val prtStatement = con.prepareStatement(query)
-        try {
-          val result = SelectResult(mapper(prtStatement.executeQuery()))
-          p.success(result)
-        } catch {
-          case e: SQLException => {
-            log.error(e.getMessage, e)
-            p.failure(e)
-          }
-        } finally {
-          prtStatement.close
+  private def select[E](query: String, mapper: ResultSet => E, senderOrg: ActorRef): Unit = {
+    connection.map(con => {
+      log.info(s"Select query = $query")
+      val prtStatement = con.prepareStatement(query)
+      try {
+        senderOrg ! SelectResult(mapper(prtStatement.executeQuery()))
+      } catch {
+        case e: SQLException => {
+          log.error(e.getMessage, e)
+          senderOrg ! akka.actor.Status.Failure(e)
         }
-      })
-    }
-    p.future
+      } finally {
+        prtStatement.close
+      }
+    })
   }
 
   /**
@@ -153,9 +142,9 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
    * @param query
    * @return Future
    */
-  private def delete(query: String): Future[Boolean] = {
+  private def delete(query: String, senderOrg: ActorRef): Unit = {
     log.info(s"Delete query = $query")
-    executeUpdate(query)
+    executeUpdate(query, senderOrg)
   }
 
   /**
@@ -163,9 +152,9 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
    * @param query
    * @return Future
    */
-  private def update(query: String): Future[Boolean] = {
+  private def update(query: String, senderOrg: ActorRef): Unit = {
     log.info(s"Update query = $query")
-    executeUpdate(query)
+    executeUpdate(query, senderOrg)
   }
 
   /**
@@ -173,32 +162,28 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
    * @param query
    * @return
    */
-  private def insert(query: String): Future[GeneratedKeyRes] = {
-    val p = Promise[GeneratedKeyRes]
-    Future {
-      connection.map(con => {
-        log.info(s"Insert query = $query")
-        val prtStatement = con.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)
-        try {
-          prtStatement.executeUpdate()
-          val keys = prtStatement.getGeneratedKeys
-          if (keys.next) {
-            log.debug("inserted successful!")
-            p.success(GeneratedKeyRes(keys.getLong(1)))
-          } else {
-            p.success(GeneratedKeyRes(0))
-          }
-        } catch {
-          case e: SQLException => {
-            log.error(e, e.getMessage)
-            p.failure(e)
-          }
-        } finally {
-          prtStatement.close
+  private def insert(query: String, senderOrg: ActorRef): Unit = {
+    connection.map(con => {
+      log.info(s"Insert query = $query")
+      val prtStatement = con.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)
+      try {
+        prtStatement.executeUpdate()
+        val keys = prtStatement.getGeneratedKeys
+        if (keys.next) {
+          log.debug("inserted successful!")
+          senderOrg ! GeneratedKeyRes(keys.getLong(1))
+        } else {
+          senderOrg ! GeneratedKeyRes(0)
         }
-      })
-    }
-    p.future
+      } catch {
+        case e: SQLException => {
+          log.error(e, e.getMessage)
+          senderOrg ! akka.actor.Status.Failure(e)
+        }
+      } finally {
+        prtStatement.close
+      }
+    })
   }
 
   /**
@@ -250,25 +235,21 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
     })
   }
 
-  private def executeUpdate(query: String): Future[Boolean] = {
-    val p = Promise[Boolean]
-    Future {
-      connection.map(con => {
-        val prtStatement = con.prepareStatement(query)
-        try {
-          prtStatement.executeUpdate()
-          p.success(true)
-        } catch {
-          case e: SQLException => {
-            log.error(e.getMessage, e)
-            p.failure(e)
-          }
-        } finally {
-          prtStatement.close
+  private def executeUpdate(query: String, senderOrg: ActorRef): Unit = {
+    connection.map(con => {
+      val prtStatement = con.prepareStatement(query)
+      try {
+        prtStatement.executeUpdate()
+        senderOrg ! true
+      } catch {
+        case e: SQLException => {
+          log.error(e.getMessage, e)
+          senderOrg ! akka.actor.Status.Failure(e)
         }
-      })
-    }
-    p.future
+      } finally {
+        prtStatement.close
+      }
+    })
   }
 
   @throws[Exception](classOf[Exception])
