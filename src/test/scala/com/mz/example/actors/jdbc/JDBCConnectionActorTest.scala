@@ -6,7 +6,7 @@ import akka.testkit.TestKit
 import akka.actor.ActorSystem
 import com.mz.example.actors.jdbc.DataSourceActorMessages.{ConnectionResult, GetConnection}
 import com.mz.example.actors.jdbc.JDBCConnectionActorMessages._
-import com.mz.example.actors.supervisors.{CreatedActorMsg, DataSourceSupervisorActor}
+import com.mz.example.actors.supervisors.{CreateActorMsg, DataSourceSupervisorActor}
 import com.mz.example.domains.User
 import org.scalatest.FunSuiteLike
 import org.scalatest.BeforeAndAfterAll

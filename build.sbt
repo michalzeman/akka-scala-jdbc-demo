@@ -4,14 +4,14 @@ version := "1.0"
 
 scalaVersion := "2.11.1"
 
-val akkaVersion = "2.3.9"
+val akkaVersion = "2.4.0"
 
 libraryDependencies ++= Seq(
   // Akka
   "com.typesafe.akka" %% "akka-actor" % akkaVersion,
   "ch.qos.logback" % "logback-classic" % "1.1.3",
   "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
-  //"com.typesafe.akka" %% "akka-remote" % "2.3.5",
+  //"com.typesafe.akka" %% "akka-remote" % akkaVersion,
   // test framework dependencies
   "com.typesafe.akka" %% "akka-testkit" % akkaVersion,
   "org.mockito" % "mockito-all" % "1.10.19",

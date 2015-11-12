@@ -5,7 +5,7 @@ import akka.testkit.{TestProbe, ImplicitSender, TestKit}
 import com.mz.example.actors.factories.jdbc.DataSourceActorFactory
 import com.mz.example.actors.jdbc.DataSourceActor
 import com.mz.example.actors.jdbc.DataSourceActorMessages.{ConnectionResult, GetConnection}
-import com.mz.example.actors.supervisors.{CreatedActorMsg, DataSourceSupervisorActor}
+import com.mz.example.actors.supervisors.{CreateActorMsg, DataSourceSupervisorActor}
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, BeforeAndAfterAll, FunSuiteLike}
 import org.scalautils.ConversionCheckedTripleEquals
@@ -34,6 +34,6 @@ with DataSourceActorFactory {
   test("init dataSource") {
     val dataSourceSupervisor = system.actorOf(DataSourceSupervisorActor.props, DataSourceSupervisorActor.actorName)
     selectDataSourceActor(system) ! GetConnection
-    expectMsgType[ConnectionResult]
+    expectMsgType[ConnectionResult](5 seconds)
   }
 }

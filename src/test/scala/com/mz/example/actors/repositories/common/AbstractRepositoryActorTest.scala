@@ -3,7 +3,7 @@ package com.mz.example.actors.repositories.common
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit}
 import com.mz.example.actors.jdbc.{JDBCConnectionActor, DataSourceActor}
-import com.mz.example.actors.supervisors.{CreatedActorMsg, DataSourceSupervisorActor}
+import com.mz.example.actors.supervisors.{CreateActorMsg, DataSourceSupervisorActor}
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, BeforeAndAfterAll, FunSuiteLike}
 import org.scalautils.ConversionCheckedTripleEquals

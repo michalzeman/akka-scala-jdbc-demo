@@ -6,7 +6,7 @@ import com.mz.example.actors.jdbc.JDBCConnectionActorMessages.{Committed, Commit
 import com.mz.example.actors.jdbc.{JDBCConnectionActor, DataSourceActor}
 import com.mz.example.actors.repositories.{AddressRepositoryActor, UserRepositoryActor}
 import com.mz.example.actors.services.UserServiceActorMessages._
-import com.mz.example.actors.supervisors.{CreatedActorMsg, DataSourceSupervisorActor}
+import com.mz.example.actors.supervisors.{CreateActorMsg, DataSourceSupervisorActor}
 import com.mz.example.domains.{Address, User}
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, BeforeAndAfterAll, FunSuiteLike}

@@ -8,7 +8,7 @@ import com.mz.example.actors.jdbc.DataSourceActor
 import org.postgresql.util.PSQLException
 import scala.concurrent.duration._
 
-case class CreatedActorMsg(props: Props, name: String)
+case class CreateActorMsg(props: Props, name: String)
 
 /**
  * Created by zemi on 5. 11. 2015.
@@ -31,7 +31,7 @@ class DataSourceSupervisorActor extends Actor with ActorLogging {
     }
 
   override def receive: Receive = {
-    case CreatedActorMsg(props, name) => sender ! context.actorOf(props, name)
+    case CreateActorMsg(props, name) => sender ! context.actorOf(props, name)
     case props:Props => sender ! context.actorOf(props)
   }
 }

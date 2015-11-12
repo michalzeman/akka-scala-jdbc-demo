@@ -4,6 +4,7 @@ import java.util.concurrent.TimeUnit
 
 import akka.actor.{Props, ActorRef, ActorLogging, Actor}
 import java.sql.{SQLException, Connection}
+import akka.routing.FromConfig
 import com.typesafe.config.Config
 import com.zaxxer.hikari.{HikariDataSource, HikariConfig}
 
@@ -40,10 +41,10 @@ class DataSourceActor extends Actor with ActorLogging{
           throw e
         }
       }
-//    } pipeTo(sender)
   }
 
   private def configCon: HikariConfig = {
+    log.debug("dataPool creating")
     val config = new HikariConfig()
     config.setMinimumIdle(sysConfig.getInt(DATASOURCE_MINIMUMIDLE))
     config.setMaximumPoolSize(sysConfig.getInt(DATASOURCE_MAXIMUMPOOLSIZE))
@@ -100,5 +101,6 @@ object DataSourceActor {
    * Create Props for an actor of this type
    * @return a Props
    */
+//  def props: Props = FromConfig.props(Props[DataSourceActor])
   def props: Props = Props[DataSourceActor]
 }
