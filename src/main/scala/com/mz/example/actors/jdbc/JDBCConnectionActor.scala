@@ -9,7 +9,6 @@ import scala.concurrent.duration._
 import com.mz.example.actors.common.messages.Messages.{RetryOperation, UnsupportedOperation, OperationDone}
 import com.mz.example.actors.factories.jdbc.DataSourceActorFactory
 import com.mz.example.actors.jdbc.DataSourceActorMessages.{ConnectionResult, GetConnection}
-import scala.concurrent.ExecutionContext.Implicits.global
 import akka.pattern._
 
 /**
@@ -19,6 +18,7 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
 
   import JDBCConnectionActorMessages._
   import DataSourceActor.SCHEMA
+  import scala.concurrent.ExecutionContext.Implicits.global
   //import context.dispatcher
 
   private implicit val timeout: Timeout = 1.seconds
@@ -62,16 +62,6 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
     }
   }
 
-  /**
-   * in case that connection is not ready it is scheduled sneding nex same message
-   * @param obj - message
-   * @param orgSender - sender of original message
-   */
-  def retryOperation(obj: Any, orgSender: ActorRef): Unit = {
-    context.system.scheduler.scheduleOnce(
-      9.millisecond, self, RetryOperation(obj, orgSender))
-  }
-
   private def waitingForConnection: Receive = {
     case ConnectionResult(con) => {
       log.debug("Connection returned!")
@@ -110,6 +100,16 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
       log.warning(s"connectionReady => Unsupported operation object ${obj.getClass}")
       sender() ! UnsupportedOperation
     }
+  }
+
+  /**
+   * in case that connection is not ready it is scheduled sneding nex same message
+   * @param obj - message
+   * @param orgSender - sender of original message
+   */
+  def retryOperation(obj: Any, orgSender: ActorRef): Unit = {
+    context.system.scheduler.scheduleOnce(
+      9.millisecond, self, RetryOperation(obj, orgSender))
   }
 
   /**
@@ -213,6 +213,7 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
       } catch {
         case e: SQLException => {
           log.error(e, "JDBCConnectionActor.Commit")
+          sender ! akka.actor.Status.Failure(e)
           throw e
         }
       } finally {
@@ -220,9 +221,9 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
         if (!con.isClosed) {
           con.close()
         }
+        connection = None
       }
     })
-    connection = None
   }
 
   /**
@@ -236,6 +237,7 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
       } catch {
         case e: SQLException => {
           log.error(e, "JDBCConnectionActor.Rollback")
+          sender ! akka.actor.Status.Failure(e)
           throw e
         }
       } finally {
@@ -243,9 +245,9 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
         if (!con.isClosed) {
           con.close()
         }
+        connection = None
       }
     })
-    connection = None
   }
 
   private def executeUpdate(query: String): Future[Boolean] = {
