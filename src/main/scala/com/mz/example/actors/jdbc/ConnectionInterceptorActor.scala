@@ -28,8 +28,8 @@ class ConnectionInterceptorActor extends Actor with ActorLogging {
     }
     case ActorStop => {
       log.debug("ConnectionInterceptorActor -> going to kill self!")
-      //context.system.stop(self)
-      self ! PoisonPill
+      context.stop(self)
+//      self ! PoisonPill
     }
   }
 
