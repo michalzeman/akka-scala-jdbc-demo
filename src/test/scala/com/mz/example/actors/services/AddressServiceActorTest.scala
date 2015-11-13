@@ -66,7 +66,7 @@ with MockitoSugar {
     jdbcConA.expectMsgType[Select[Address]]
     val addressResList:Seq[Address] = mutable.MutableList.empty
     jdbcConA.reply(SelectResult(addressResList))
-    jdbcConA.expectMsg(Insert)
+    jdbcConA.expectMsgType[Insert]
     jdbcConA.reply(GeneratedKeyRes(12))
     val addresses = mutable.MutableList(Address(12, "Street_Find", "zip_Find", "houseNum_Find", "City_Find"))
     expectMsgAllOf(FoundAddresses(addresses))
