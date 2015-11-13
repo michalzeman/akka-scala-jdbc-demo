@@ -53,7 +53,7 @@ with MockitoSugar {
     val addressService = system.actorOf(AddressServiceActor.props(userRepository, addressRepository))
     addressService ! FindAddress(Address(0, "StreetFind", "zipFind", "houseNumFind", "CityFind"))
     jdbcConA.expectMsgType[Select[Address]]
-    jdbcConA.reply(List[Address](Address(3, "StreetFind", "zipFind", "houseNumFind", "CityFind")))
+    jdbcConA.reply(SelectResult(List[Address](Address(3, "StreetFind", "zipFind", "houseNumFind", "CityFind"))))
     expectMsgType[FoundAddresses]
   }
 
