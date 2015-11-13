@@ -32,7 +32,7 @@ trait SqlDomainMapper[+E] {
 //      } else tail
 //    }
 //    mapList(resultSet, Stream.empty)
-    val list = scala.collection.mutable.MutableList[E]()
+    val list = scala.collection.mutable.MutableList.empty[E]
     while(resultSet.next()) {
       list += mapResultSetDomain(resultSet)
     }
