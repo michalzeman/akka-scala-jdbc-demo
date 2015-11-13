@@ -1,9 +1,9 @@
 package com.mz.example.actors.repositories
 
 import com.mz.example.actors.repositories.common.AbstractRepositoryActorTest
-import com.mz.example.actors.repositories.common.messages.AddressRepositoryActorMessages.InsertAddress
+import com.mz.example.actors.repositories.AddressRepositoryActor.InsertAddress
 import com.mz.example.actors.repositories.common.messages.{SelectAll, SelectById, Inserted}
-import com.mz.example.actors.repositories.common.messages.UserRepositoryActorMessages.{DeleteUser, UpdateUser, InsertUser}
+import com.mz.example.actors.repositories.UserRepositoryActor.{DeleteUser, UpdateUser, InsertUser}
 import com.mz.example.domains.{Address, User}
 import scala.concurrent.duration._
 import com.mz.example.actors.jdbc.JDBCConnectionActor._

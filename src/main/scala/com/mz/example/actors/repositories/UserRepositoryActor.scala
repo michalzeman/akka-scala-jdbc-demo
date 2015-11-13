@@ -4,8 +4,8 @@ import akka.actor.{Props, ActorLogging, Actor, ActorRef}
 import akka.pattern._
 import akka.util.Timeout
 import com.mz.example.actors.common.messages.Messages.UnsupportedOperation
-import com.mz.example.actors.repositories.common.messages.{SelectAll, Inserted, SelectById, UserRepositoryActorMessages}
-import UserRepositoryActorMessages._
+import com.mz.example.actors.repositories.common.messages.{SelectAll, Inserted, SelectById}
+import UserRepositoryActor._
 import com.mz.example.domains.User
 import com.mz.example.domains.sql.mappers.UserMapper
 import scala.concurrent.duration._
@@ -167,6 +167,13 @@ class UserRepositoryActor(jdbcActor: ActorRef) extends Actor with ActorLogging w
 
 
 object UserRepositoryActor {
+
+  case class UpdateUser(user: User)
+
+  case class DeleteUser(id: Long)
+
+  case class InsertUser(user: User)
+
   /**
    * Create Props for an actor of this type
    * @return a Props

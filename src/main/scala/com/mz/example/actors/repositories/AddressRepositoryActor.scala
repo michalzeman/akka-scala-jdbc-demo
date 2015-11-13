@@ -5,7 +5,7 @@ import akka.util.Timeout
 import akka.pattern.{ask, pipe}
 import com.mz.example.actors.common.messages.Messages.UnsupportedOperation
 import com.mz.example.actors.jdbc.JDBCConnectionActor._
-import com.mz.example.actors.repositories.common.messages.AddressRepositoryActorMessages.{DeleteAddress, InsertAddress, UpdateAddress}
+import com.mz.example.actors.repositories.AddressRepositoryActor.{DeleteAddress, InsertAddress, UpdateAddress}
 import com.mz.example.actors.repositories.common.messages.{SelectById, Inserted}
 import com.mz.example.domains.sql.mappers.AddressMapper
 import com.mz.example.domains.{Address}
@@ -119,6 +119,13 @@ class AddressRepositoryActor(jdbcActor: ActorRef) extends Actor with ActorLoggin
 }
 
 object AddressRepositoryActor {
+
+  case class UpdateAddress(address: Address)
+
+  case class DeleteAddress(id: Long)
+
+  case class InsertAddress(address: Address)
+
   /**
    * Create Props for an actor of this type
    * @return a Props

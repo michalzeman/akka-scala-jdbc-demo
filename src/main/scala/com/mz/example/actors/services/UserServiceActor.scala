@@ -4,9 +4,8 @@ import akka.actor.{Props, ActorRef, ActorLogging, Actor}
 import akka.util.Timeout
 import com.mz.example.actors.common.messages.Messages.UnsupportedOperation
 import com.mz.example.actors.repositories.common.messages.{SelectById, Inserted}
-import com.mz.example.actors.repositories.common.messages.UserRepositoryActorMessages.InsertUser
-import com.mz.example.actors.services.AddressServiceActorMessages.{AddressCreated, CreateAddress}
-import com.mz.example.actors.services.UserServiceActor._
+import com.mz.example.actors.repositories.UserRepositoryActor.InsertUser
+import com.mz.example.actors.services.AddressServiceActor.{AddressCreated, CreateAddress}
 import com.mz.example.actors.services.UserServiceActor._
 import com.mz.example.domains.{Address, User}
 import akka.pattern._
@@ -122,7 +121,7 @@ class UserServiceActor(userRepProps: Props, addressServiceProps: Props) extends 
    * @return Future[UserDeleted]
    */
   private def deleteUser(user: User): Future[UserDeleted] = {
-    import com.mz.example.actors.repositories.common.messages.UserRepositoryActorMessages.DeleteUser
+    import com.mz.example.actors.repositories.UserRepositoryActor.DeleteUser
     val p = Promise[UserDeleted]
     (userRepository ? DeleteUser(user.id)).mapTo[Boolean] onComplete {
       case Success(success) => {
@@ -143,7 +142,7 @@ class UserServiceActor(userRepProps: Props, addressServiceProps: Props) extends 
    * @return
    */
   private def updateUser(user: User): Future[UserUpdateResult] = {
-    import com.mz.example.actors.repositories.common.messages.UserRepositoryActorMessages.UpdateUser
+    import com.mz.example.actors.repositories.UserRepositoryActor.UpdateUser
     val p = Promise[UserUpdateResult]
     (userRepository ? UpdateUser(user)).mapTo[Boolean] onComplete {
       case Success(true) => {

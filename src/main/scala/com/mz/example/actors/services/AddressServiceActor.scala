@@ -4,9 +4,9 @@ import akka.actor.{ActorLogging, Actor, Props}
 import akka.util.Timeout
 import akka.pattern._
 import com.mz.example.actors.common.messages.Messages.UnsupportedOperation
-import com.mz.example.actors.repositories.common.messages.AddressRepositoryActorMessages.InsertAddress
+import com.mz.example.actors.repositories.AddressRepositoryActor.InsertAddress
 import com.mz.example.actors.repositories.common.messages.Inserted
-import com.mz.example.actors.services.AddressServiceActorMessages._
+import com.mz.example.actors.services.AddressServiceActor._
 import com.mz.example.domains.Address
 import scala.concurrent.{Promise, Future}
 import scala.concurrent.duration._
@@ -38,7 +38,7 @@ class AddressServiceActor(userRepProps: Props, addressRepProps: Props) extends A
    * @return
    */
   private def update(address: Address): Future[AddressUpdateResult] = {
-    import com.mz.example.actors.repositories.common.messages.AddressRepositoryActorMessages.UpdateAddress
+    import com.mz.example.actors.repositories.AddressRepositoryActor.UpdateAddress
     log.debug("Update address")
     val p = Promise[AddressUpdateResult]
     (addressRepository ? UpdateAddress(address)).mapTo[Boolean] onComplete {
@@ -81,6 +81,34 @@ class AddressServiceActor(userRepProps: Props, addressRepProps: Props) extends A
 }
 
 object AddressServiceActor {
+
+  case class FindAddressById(id: Long)
+
+  case class FindAddress(address: Address)
+
+  case class FoundAddresses(addresses:Seq[Address])
+
+  case class FindOrCreateAddress(address: Address)
+
+  case class CreateAddress(address: Address)
+
+  case class AddressCreated(id: Long)
+
+  case class UpdateAddress(address: Address)
+
+  trait AddressUpdateResult
+
+  case class AddressUpdated() extends AddressUpdateResult
+
+  case class AddressNotUpdated() extends AddressUpdateResult
+
+  case class DeleteAddress(address: Address)
+
+  trait AddressDeleteResult
+
+  case class AddressDeleted() extends AddressDeleteResult
+
+  case class AddressNotDeleted() extends AddressDeleteResult
 
   /**
   * Create Props

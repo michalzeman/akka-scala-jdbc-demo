@@ -7,10 +7,6 @@ import com.mz.example.domains.User
  */
 object UserRepositoryActorMessages {
 
-  case class UpdateUser(user: User)
 
-  case class DeleteUser(id: Long)
-
-  case class InsertUser(user: User)
 
 }
