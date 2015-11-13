@@ -42,6 +42,7 @@ with MockitoSugar {
     val addressService = system.actorOf(AddressServiceActor.props(userRepository, addressRepository))
     addressService ! DeleteAddress(Address(12, "Street_Find", "zip_Find", "houseNum_Find", "City_Find"))
     jdbcConA.expectMsgType[Delete]
+    jdbcConA.reply(true)
     expectMsgType[AddressDeleted]
   }
 
