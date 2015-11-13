@@ -4,23 +4,17 @@ import java.sql.{ResultSet, PreparedStatement, Statement, Connection}
 
 import akka.testkit.TestKit
 import akka.actor.ActorSystem
-import com.mz.example.actors.jdbc.DataSourceActorMessages.{ConnectionResult, GetConnection}
-import com.mz.example.actors.jdbc.JDBCConnectionActorMessages._
+import com.mz.example.actors.jdbc.DataSourceActor.{ConnectionResult, GetConnection}
 import com.mz.example.actors.supervisors.{CreateActorMsg, DataSourceSupervisorActor}
 import com.mz.example.domains.User
 import org.scalatest.FunSuiteLike
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.Matchers
 import akka.testkit.ImplicitSender
-import akka.pattern.ask
-import akka.testkit.TestProbe
+import com.mz.example.actors.jdbc.JDBCConnectionActor._
 import org.scalatest.mock.MockitoSugar
-import org.mockito.Mockito._;
 import scala.concurrent.duration._
-import scala.concurrent._
 import org.scalautils.ConversionCheckedTripleEquals
-
-import scala.util.{Failure, Success}
 
 /**
  * Created by zemo on 04/10/15.

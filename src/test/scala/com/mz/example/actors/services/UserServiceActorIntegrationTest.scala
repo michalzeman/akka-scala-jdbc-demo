@@ -2,17 +2,15 @@ package com.mz.example.actors.services
 
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit}
-import com.mz.example.actors.jdbc.JDBCConnectionActorMessages.{Committed, Commit, Rollback}
 import com.mz.example.actors.jdbc.{JDBCConnectionActor, DataSourceActor}
 import com.mz.example.actors.repositories.{AddressRepositoryActor, UserRepositoryActor}
-import com.mz.example.actors.services.UserServiceActorMessages._
+import com.mz.example.actors.services.UserServiceActor._
 import com.mz.example.actors.supervisors.{CreateActorMsg, DataSourceSupervisorActor}
 import com.mz.example.domains.{Address, User}
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, BeforeAndAfterAll, FunSuiteLike}
 import org.scalautils.ConversionCheckedTripleEquals
-import akka.pattern.ask
-import scala.concurrent.Await
+import com.mz.example.actors.jdbc.JDBCConnectionActor._
 import scala.concurrent.duration._
 
 /**

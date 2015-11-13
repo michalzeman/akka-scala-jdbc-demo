@@ -1,11 +1,9 @@
 package com.example
 
 import akka.actor._
-import com.mz.example.actors.HelloWorldActor
 import com.mz.example.actors.actions.UserActionActor
 import com.mz.example.actors.jdbc.{DataSourceActor, JDBCConnectionActor}
-import com.mz.example.actors.jdbc.JDBCConnectionActorMessages.Init
-import com.mz.example.actors.services.UserServiceActorMessages.RegistrateUser
+import com.mz.example.actors.services.UserServiceActor.RegistrateUser
 import com.mz.example.actors.supervisors.DataSourceSupervisorActor
 import com.mz.example.domains.{Address, User}
 import scala.concurrent.Await

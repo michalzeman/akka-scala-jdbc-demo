@@ -6,7 +6,8 @@ import com.mz.example.actors.common.messages.Messages.UnsupportedOperation
 import com.mz.example.actors.repositories.common.messages.{SelectById, Inserted}
 import com.mz.example.actors.repositories.common.messages.UserRepositoryActorMessages.InsertUser
 import com.mz.example.actors.services.AddressServiceActorMessages.{AddressCreated, CreateAddress}
-import com.mz.example.actors.services.UserServiceActorMessages._
+import com.mz.example.actors.services.UserServiceActor._
+import com.mz.example.actors.services.UserServiceActor._
 import com.mz.example.domains.{Address, User}
 import akka.pattern._
 import scala.concurrent.duration._
@@ -162,6 +163,34 @@ class UserServiceActor(userRepProps: Props, addressServiceProps: Props) extends 
 }
 
 object UserServiceActor {
+
+  case class CreateUser(user: User)
+
+  case class UserCreated(id: Long)
+
+  case class FindUserById(id: Long)
+
+  case class FoundUsers(users: Seq[User])
+
+  case class DeleteUser(user: User)
+
+  case class UserDeleted()
+
+  case class UserNotDeleted()
+
+  case class UpdateUser(user: User)
+
+  trait UserUpdateResult
+
+  case class UserUpdated() extends UserUpdateResult
+
+  case class UserNotUpdated() extends UserUpdateResult
+
+  case class AddAddressToUser(user: User, address: Address)
+
+  case class RegistrateUser(user: User, address: Address)
+
+  case class UserRegistrated()
 
   /**
    * Create Props

@@ -3,7 +3,7 @@ package com.mz.example.actors.actions
 import akka.actor.{PoisonPill, Props, ActorSystem}
 import akka.testkit.{JavaTestKit, ImplicitSender, TestKit}
 import com.mz.example.actors.jdbc.DataSourceActor
-import com.mz.example.actors.services.UserServiceActorMessages.RegistrateUser
+import com.mz.example.actors.services.UserServiceActor.RegistrateUser
 import com.mz.example.actors.supervisors.{CreateActorMsg, DataSourceSupervisorActor}
 import com.mz.example.domains.{Address, User}
 import org.scalatest.mock.MockitoSugar

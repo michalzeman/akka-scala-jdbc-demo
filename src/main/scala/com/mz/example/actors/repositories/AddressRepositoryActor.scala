@@ -4,7 +4,7 @@ import akka.actor.{ActorLogging, Actor, Props, ActorRef}
 import akka.util.Timeout
 import akka.pattern.{ask, pipe}
 import com.mz.example.actors.common.messages.Messages.UnsupportedOperation
-import com.mz.example.actors.jdbc.JDBCConnectionActorMessages._
+import com.mz.example.actors.jdbc.JDBCConnectionActor._
 import com.mz.example.actors.repositories.common.messages.AddressRepositoryActorMessages.{DeleteAddress, InsertAddress, UpdateAddress}
 import com.mz.example.actors.repositories.common.messages.{SelectById, Inserted}
 import com.mz.example.domains.sql.mappers.AddressMapper

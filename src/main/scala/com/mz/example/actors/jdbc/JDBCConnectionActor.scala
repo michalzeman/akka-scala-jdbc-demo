@@ -2,18 +2,18 @@ package com.mz.example.actors.jdbc
 
 import java.sql.{ResultSet, Statement, SQLException, Connection}
 import akka.actor._
+import com.mz.example.actors.jdbc.JDBCConnectionActor._
 import com.typesafe.config.Config
 import scala.concurrent.duration._
 import com.mz.example.actors.common.messages.Messages.{RetryOperation, UnsupportedOperation}
 import com.mz.example.actors.factories.jdbc.DataSourceActorFactory
-import com.mz.example.actors.jdbc.DataSourceActorMessages.{ConnectionResult, GetConnection}
+import com.mz.example.actors.jdbc.DataSourceActor.{ConnectionResult, GetConnection}
 
 /**
  * Created by zemi on 1. 10. 2015.
  */
 class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFactory {
 
-  import JDBCConnectionActorMessages._
   import DataSourceActor.SCHEMA
   import context.dispatcher
 
@@ -275,6 +275,67 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
  * Companion object
  */
 object JDBCConnectionActor {
+
+  /**
+   *
+   */
+  case class InitConnection(actor: ActorRef)
+
+  /**
+   * message for commit transaction
+   */
+  case object Commit
+
+  /**
+   * confirmation message for successful commit
+   */
+  case object Committed
+
+  /**
+   * message for rollback transaction
+   */
+  case object Rollback
+
+  /**
+   * confirmation message for successful rollback
+   */
+  case object RollbackSuccess
+
+  /**
+   * Insert statement
+   * @param query
+   */
+  case class Insert(query: String)
+
+  /**
+   * Update statement
+   * @param query
+   */
+  case class Update(query: String)
+
+  /**
+   * Delete statement
+   * @param query
+   */
+  case class Delete(query: String)
+
+  /**
+   * Select statement
+   * @param query
+   */
+  case class Select[+E](query: String, mapper: ResultSet => E)
+
+  /**
+   * Result of select
+   * @param result - E
+   */
+  case class SelectResult[+E](result: E)
+
+  /**
+   * Generated key as a result after Insert
+   * @param id
+   */
+  case class GeneratedKeyRes(id: Long)
 
   /**
    * Create Props for an actor of this type

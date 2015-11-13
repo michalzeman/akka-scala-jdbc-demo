@@ -1,14 +1,12 @@
 package com.mz.example.actors.repositories
 
-import com.mz.example.actors.jdbc.JDBCConnectionActorMessages.{SelectResult, Rollback, Commit}
 import com.mz.example.actors.repositories.common.AbstractRepositoryActorTest
-import akka.pattern.ask
 import com.mz.example.actors.repositories.common.messages.AddressRepositoryActorMessages.InsertAddress
 import com.mz.example.actors.repositories.common.messages.{SelectAll, SelectById, Inserted}
 import com.mz.example.actors.repositories.common.messages.UserRepositoryActorMessages.{DeleteUser, UpdateUser, InsertUser}
 import com.mz.example.domains.{Address, User}
-import scala.concurrent.Await
 import scala.concurrent.duration._
+import com.mz.example.actors.jdbc.JDBCConnectionActor._
 
 /**
  * Created by zemo on 12/10/15.

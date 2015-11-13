@@ -10,7 +10,6 @@ import com.zaxxer.hikari.{HikariDataSource, HikariConfig}
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
-import DataSourceActorMessages._
 
 class DataSourceActor extends Actor with ActorLogging{
 
@@ -79,6 +78,18 @@ class DataSourceActor extends Actor with ActorLogging{
  * Actor for creating and handling connection to the DB
  */
 object DataSourceActor {
+
+  /**
+   * Requesting of connection
+   */
+  case object GetConnection
+
+  /**
+   * Message with the connection
+   * @param con @java.sql.Connection
+   */
+  case class ConnectionResult(con: Connection)
+
   val DRIVER = "akka.dataSource.driver"
   val SCHEMA = "akka.dataSource.schema"
   val CONNECTION_URL = "akka.dataSource.connection.url"

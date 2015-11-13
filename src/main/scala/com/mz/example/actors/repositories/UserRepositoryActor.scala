@@ -4,7 +4,6 @@ import akka.actor.{Props, ActorLogging, Actor, ActorRef}
 import akka.pattern._
 import akka.util.Timeout
 import com.mz.example.actors.common.messages.Messages.UnsupportedOperation
-import com.mz.example.actors.jdbc.JDBCConnectionActorMessages._
 import com.mz.example.actors.repositories.common.messages.{SelectAll, Inserted, SelectById, UserRepositoryActorMessages}
 import UserRepositoryActorMessages._
 import com.mz.example.domains.User
@@ -13,6 +12,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{Future, Promise}
 import scala.util.{Failure, Success}
 import scala.concurrent.ExecutionContext.Implicits.global
+import com.mz.example.actors.jdbc.JDBCConnectionActor._
 
 /**
  * Created by zemi on 8. 10. 2015.

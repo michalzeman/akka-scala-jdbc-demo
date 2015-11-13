@@ -1,7 +1,7 @@
 package com.mz.example.actors.jdbc
 
 import akka.actor._
-import com.mz.example.actors.jdbc.DataSourceActorMessages.GetConnection
+import com.mz.example.actors.jdbc.DataSourceActor.GetConnection
 import scala.concurrent.duration._
 
 case class ReceiveTimeoutInterceptor(orgSender: ActorRef)

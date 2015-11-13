@@ -1,12 +1,11 @@
 package com.mz.example.actors.actions
 
-import akka.actor.Actor.Receive
+import com.mz.example.actors.jdbc.JDBCConnectionActor._
 import akka.actor.{PoisonPill, Actor, ActorLogging}
 import akka.util.Timeout
 import com.mz.example.actors.jdbc.JDBCConnectionActor
-import com.mz.example.actors.jdbc.JDBCConnectionActorMessages.{Rollback, Commit}
 import com.mz.example.actors.repositories.{AddressRepositoryActor, UserRepositoryActor}
-import com.mz.example.actors.services.UserServiceActorMessages.{UserRegistrated, RegistrateUser}
+import com.mz.example.actors.services.UserServiceActor.{UserRegistrated, RegistrateUser}
 import com.mz.example.actors.services.{UserServiceActor, AddressServiceActor}
 import akka.pattern._
 import scala.concurrent._
