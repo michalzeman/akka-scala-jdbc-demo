@@ -42,6 +42,7 @@ with MockitoSugar {
     val addressService = system.actorOf(AddressServiceActor.props(userRepository, addressRepository))
     addressService ! DeleteAddress(Address(12, "Street_Find", "zip_Find", "houseNum_Find", "City_Find"))
     jdbcConA.expectMsgType[Delete]
+    jdbcConA.reply(true)
     expectMsgType[AddressDeleted]
   }
 
@@ -52,7 +53,7 @@ with MockitoSugar {
     val addressService = system.actorOf(AddressServiceActor.props(userRepository, addressRepository))
     addressService ! FindAddress(Address(0, "StreetFind", "zipFind", "houseNumFind", "CityFind"))
     jdbcConA.expectMsgType[Select[Address]]
-    jdbcConA.reply(List[Address](Address(3, "StreetFind", "zipFind", "houseNumFind", "CityFind")))
+    jdbcConA.reply(SelectResult(List[Address](Address(3, "StreetFind", "zipFind", "houseNumFind", "CityFind"))))
     expectMsgType[FoundAddresses]
   }
 
@@ -65,7 +66,7 @@ with MockitoSugar {
     jdbcConA.expectMsgType[Select[Address]]
     val addressResList:Seq[Address] = mutable.MutableList.empty
     jdbcConA.reply(SelectResult(addressResList))
-    jdbcConA.expectMsg(Insert)
+    jdbcConA.expectMsgType[Insert]
     jdbcConA.reply(GeneratedKeyRes(12))
     val addresses = mutable.MutableList(Address(12, "Street_Find", "zip_Find", "houseNum_Find", "City_Find"))
     expectMsgAllOf(FoundAddresses(addresses))
