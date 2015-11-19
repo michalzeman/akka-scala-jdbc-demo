@@ -5,7 +5,7 @@ import akka.util.Timeout
 import akka.pattern.{ask, pipe}
 import com.mz.example.actors.common.messages.Messages.UnsupportedOperation
 import com.mz.example.actors.jdbc.JDBCConnectionActor._
-import com.mz.example.actors.repositories.AddressRepositoryActor.{DeleteAddress, InsertAddress, UpdateAddress}
+import com.mz.example.actors.repositories.AddressRepositoryActor.{SelectAddress, DeleteAddress, InsertAddress, UpdateAddress}
 import com.mz.example.actors.repositories.common.messages.{SelectById, Inserted}
 import com.mz.example.domains.sql.mappers.AddressMapper
 import com.mz.example.domains.{Address}
@@ -31,8 +31,35 @@ class AddressRepositoryActor(jdbcActor: ActorRef) extends Actor with ActorLoggin
     case UpdateAddress(address) => update(address) pipeTo sender
     case DeleteAddress(id) => delete(id) pipeTo sender
     case InsertAddress(address) => insert(address) pipeTo sender
+    case SelectAddress(address) => select(address) pipeTo sender
     case UnsupportedOperation => log.debug(s"sender sent UnsupportedOperation $sender")
     case _ => sender ! UnsupportedOperation
+  }
+
+  /**
+   * Select address by attributes
+   * @param address
+   * @return
+   */
+  private def select(address: Address): Future[Seq[Address]] = {
+    val p = Promise[Seq[Address]]
+    log.debug("select")
+    (jdbcActor ? Select(s"""select $ID_COL, $STREET_COL, $ZIP_COL, $HOUSE_NUMBER_COL, $CITY_COL
+          from $TABLE_NAME where
+          $STREET_COL = '${address.street}' and
+          $ZIP_COL = '${address.zip}' and
+          $HOUSE_NUMBER_COL = '${address.houseNumber}' and
+          $CITY_COL = '${address.city}'""", mapResultSetList)).mapTo[SelectResult[Seq[Address]]] onComplete {
+      case Success(result) => {
+        log.debug("select - success!")
+        p.success(result.result)
+      }
+      case Failure(f) => {
+        log.error(f, f.getMessage)
+        p.failure(f)
+      }
+    }
+    p.future
   }
 
   /**
@@ -125,6 +152,8 @@ object AddressRepositoryActor {
   case class DeleteAddress(id: Long)
 
   case class InsertAddress(address: Address)
+
+  case class SelectAddress(address: Address)
 
   /**
    * Create Props for an actor of this type
