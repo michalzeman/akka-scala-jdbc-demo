@@ -39,14 +39,6 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
     }
   }
 
-  private def connectionNotReady: Receive = {
-    case obj: Any => {
-      log.info(s"Connection is not jet ready!")
-      retryOperation(obj, sender)
-    }
-    case UnsupportedOperation => log.debug(s"Receive => sender sent UnsupportedOperation $sender")
-  }
-
   private def connectionClosed: Receive = {
     case RetryOperation(opr, orgSender) => retryOperation(opr, orgSender)
     case obj: Any => {
