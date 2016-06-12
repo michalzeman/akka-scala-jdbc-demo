@@ -1,37 +1,28 @@
 package com.mz.example.actors.services
 
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.Props
 import akka.pattern._
-import akka.util.Timeout
-import com.mz.example.actors.common.messages.messages.UnsupportedOperation
-import com.mz.example.actors.repositories.common.messages._
 import com.mz.example.actors.services.AddressServiceActor.{AddressCreated, CreateAddress}
 import com.mz.example.actors.services.UserServiceActor._
+import com.mz.example.actors.services.common.AbstractDomainServiceActor
+import com.mz.example.actors.services.messages._
 import com.mz.example.domains.{Address, User}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
 import scala.concurrent.{Future, Promise}
 import scala.util.{Failure, Success}
 
 /**
  * Created by zemo on 18/10/15.
  */
-class UserServiceActor(userRepProps: Props, addressServiceProps: Props) extends Actor with ActorLogging {
-
-  private implicit val timeout: Timeout = 2000 milliseconds
-
-  val userRepository = context.actorOf(userRepProps)
+class UserServiceActor(userRepProps: Props, addressServiceProps: Props) extends AbstractDomainServiceActor[User](userRepProps) {
 
   val addressService = context.actorOf(addressServiceProps)
 
-  override def receive: Receive = {
-    case CreateUser(user) => createUser(user) pipeTo sender
-    case FindUserById(id) => findUserById(id) pipeTo sender
-    case DeleteUser(user) => deleteUser(user) pipeTo sender
-    case UpdateUser(user) => updateUser(user) pipeTo sender
+  override def receive = userReceive orElse super.receive
+
+  def userReceive: Receive = {
     case RegistrateUser(user, address) => registrateUser(user, address) pipeTo sender
-    case _ => sender ! UnsupportedOperation
   }
 
   @throws[Exception](classOf[Exception])
@@ -45,8 +36,8 @@ class UserServiceActor(userRepProps: Props, addressServiceProps: Props) extends 
     val p = Promise[UserRegistrated]
     (addressService ? CreateAddress(address)).mapTo[AddressCreated].onComplete {
       case Success(s) =>
-        (self ? CreateUser(User(0, user.firstName, user.lastName, Some(s.id), None)))
-          .mapTo[UserCreated].onComplete  {
+        (self ? Create(User(0, user.firstName, user.lastName, Some(s.id), None)))
+          .mapTo[Created].onComplete  {
           case Success(s) => {
             log.debug("registrateUser - success!")
             p.success(UserRegistrated())
@@ -64,120 +55,9 @@ class UserServiceActor(userRepProps: Props, addressServiceProps: Props) extends 
     p.future
   }
 
-  /**
-   * Create user
-   * @param user
-   * @return
-   */
-  private def createUser(user: User): Future[UserCreated] = {
-    log.info(s"createUser first name = ${user.firstName}, last name = ${user.lastName}")
-    val p = Promise[UserCreated]
-    (userRepository ? Insert(user)).mapTo[Inserted] onComplete {
-      case Success(s) => {
-        log.info("createUser - success!")
-        p.success(UserCreated(s.id))
-      }
-      case Failure(f) => {
-        log.error(f, f.getMessage)
-        p.failure(f)
-      }
-    }
-    p.future
-  }
-
-  /**
-   * Find user by id
-   * @param id
-   * @return
-   */
-  private def findUserById(id: Long): Future[FoundUsers] = {
-    log.info(s"findUserById - id = $id")
-    val p = Promise[FoundUsers]
-    (userRepository ? SelectById(id)).mapTo[Option[User]] onComplete {
-      case Success(s) => {
-        log.info("findUserById - success!")
-        s match {
-          case s:Some[User] => p.success(FoundUsers(List(s.get)))
-          case None => p.success(FoundUsers(Nil))
-          case _ => {
-            log.warning("Unsupported message type!")
-            p.failure(new RuntimeException("Unsupported message type"))
-          }
-        }
-      }
-      case Failure(f) => {
-        log.error(f, f.getMessage)
-        p.failure(f)
-      }
-    }
-    p.future
-  }
-
-  /**
-   * Delete user
-   * @param user - User to delete
-   * @return Future[UserDeleted]
-   */
-  private def deleteUser(user: User): Future[UserDeleted] = {
-    val p = Promise[UserDeleted]
-    (userRepository ? Delete(user.id)).mapTo[Boolean] onComplete {
-      case Success(success) => {
-        log.info("User delete success!")
-        p.success(UserDeleted())
-      }
-      case Failure(f) => {
-        log.error(f, f.getMessage)
-        p.failure(f)
-      }
-    }
-    p.future
-  }
-
-  /**
-   * Update user
-   * @param user
-   * @return
-   */
-  private def updateUser(user: User): Future[UserUpdateResult] = {
-    val p = Promise[UserUpdateResult]
-    (userRepository ? Update(user)).mapTo[Boolean] onComplete {
-      case Success(true) => {
-        p.success(UserUpdated())
-      }
-      case Success(false) => {
-        p.success(UserNotUpdated())
-      }
-      case Failure(f) => {
-        log.error(f, f.getMessage)
-        p.failure(f)
-      }
-    }
-    p.future
-  }
-
 }
 
 object UserServiceActor {
-
-  case class CreateUser(user: User)
-
-  case class UserCreated(id: Long)
-
-  case class FindUserById(id: Long)
-
-  case class FoundUsers(users: Seq[User])
-
-  case class DeleteUser(user: User)
-
-  case class UserDeleted()
-
-  case class UpdateUser(user: User)
-
-  trait UserUpdateResult
-
-  case class UserUpdated() extends UserUpdateResult
-
-  case class UserNotUpdated() extends UserUpdateResult
 
   case class RegistrateUser(user: User, address: Address)
 

@@ -28,9 +28,9 @@ abstract class AbstractRepositoryActor[E <: EntityId](jdbcActor: ActorRef)
 
   override def receive: Receive = {
     case SelectById(id) => selectById(id) pipeTo sender
-    case Update(entity:E) => update(entity) pipeTo sender
+    case u:Update[E] => update(u.entity) pipeTo sender
     case Delete(id) => delete(id) pipeTo sender
-    case Insert(entity:E) => insert(entity) pipeTo sender
+    case i:Insert[E] => insert(i.entity) pipeTo sender
     case SelectAll => selectAll pipeTo sender
     case UnsupportedOperation => log.debug(s"sender sent UnsupportedOperation $sender")
     case _ => sender ! UnsupportedOperation
