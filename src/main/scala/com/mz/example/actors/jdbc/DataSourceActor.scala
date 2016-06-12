@@ -1,22 +1,16 @@
 package com.mz.example.actors.jdbc
 
+import java.sql.{Connection, SQLException}
 import java.util.concurrent.TimeUnit
 
-import akka.actor.{Props, ActorRef, ActorLogging, Actor}
-import java.sql.{SQLException, Connection}
-import akka.routing.FromConfig
+import akka.actor.{Actor, ActorLogging, Props}
+import com.mz.example.actors.common.messages.messages.UnsupportedOperation
 import com.typesafe.config.Config
-import com.zaxxer.hikari.{HikariDataSource, HikariConfig}
+import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 
-import scala.concurrent.Future
-import scala.util.{Failure, Success}
-
-class DataSourceActor extends Actor with ActorLogging{
+class DataSourceActor extends Actor with ActorLogging {
 
   import com.mz.example.actors.jdbc.DataSourceActor._
-  import com.mz.example.actors.common.messages.Messages._
-  import context.dispatcher
-  import akka.pattern._
 
 
   private val sysConfig: Config = context.system.settings.config
@@ -28,18 +22,18 @@ class DataSourceActor extends Actor with ActorLogging{
   }
 
   /**
-   * Return connection from the connection pool
-   */
-  private def getConnection : Unit = {
-      try {
-        val con = dataSource.getConnection
-        sender ! ConnectionResult(con)
-      } catch {
-        case e:SQLException => {
-          log.error(e, e.getMessage)
-          throw e
-        }
+    * Return connection from the connection pool
+    */
+  private def getConnection: Unit = {
+    try {
+      val con = dataSource.getConnection
+      sender ! ConnectionResult(con)
+    } catch {
+      case e: SQLException => {
+        log.error(e, e.getMessage)
+        throw e
       }
+    }
   }
 
   private def configCon: HikariConfig = {
@@ -59,9 +53,10 @@ class DataSourceActor extends Actor with ActorLogging{
   }
 
   /**
-   * Init data source
-   * @return  HikariDataSource object
-   */
+    * Init data source
+    *
+    * @return HikariDataSource object
+    */
   private def initDataSource: HikariDataSource = {
     new HikariDataSource(configCon)
   }
@@ -74,20 +69,21 @@ class DataSourceActor extends Actor with ActorLogging{
 }
 
 /**
- * Created by zemi on 1. 10. 2015.
- * Actor for creating and handling connection to the DB
- */
+  * Created by zemi on 1. 10. 2015.
+  * Actor for creating and handling connection to the DB
+  */
 object DataSourceActor {
 
   /**
-   * Requesting of connection
-   */
+    * Requesting of connection
+    */
   case object GetConnection
 
   /**
-   * Message with the connection
-   * @param con @java.sql.Connection
-   */
+    * Message with the connection
+    *
+    * @param con @java.sql.Connection
+    */
   case class ConnectionResult(con: Connection)
 
   val DRIVER = "akka.dataSource.driver"
@@ -109,9 +105,10 @@ object DataSourceActor {
   val actorName = "dataSource"
 
   /**
-   * Create Props for an actor of this type
-   * @return a Props
-   */
-//  def props: Props = FromConfig.props(Props[DataSourceActor])
+    * Create Props for an actor of this type
+    *
+    * @return a Props
+    */
+  //  def props: Props = FromConfig.props(Props[DataSourceActor])
   def props: Props = Props[DataSourceActor]
 }

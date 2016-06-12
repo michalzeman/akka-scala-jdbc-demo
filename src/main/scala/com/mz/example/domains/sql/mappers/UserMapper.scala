@@ -20,17 +20,42 @@ trait UserMapper extends SqlDomainMapper[User] {
 
   val TABLE_NAME = "users"
 
-  val ID_COL = "id"
-
   val FIRST_NAME_COL = "first_name"
 
   val LAST_NAME_COL = "last_name"
 
   val ADDRESS_ID_COL = "address_id"
 
+  val SQL_PROJECTION = s"$ID_COL, $FIRST_NAME_COL, $LAST_NAME_COL, $ADDRESS_ID_COL"
+
+  val COLUMNS = s"$FIRST_NAME_COL, $LAST_NAME_COL, $ADDRESS_ID_COL"
+
+  override def sqlProjection: String = SQL_PROJECTION
+
+  override def values(implicit entity: User): String = {
+    val address = entity.addressId match {
+      case Some(id) => s", ${id}"
+      case None => ", NULL"
+    }
+    s"'${entity.firstName}', '${entity.lastName}'".concat(address)
+  }
+
+  override def columns: String = COLUMNS
+
+  override def tableName: String = TABLE_NAME
+
+  override def setValues(implicit entity: User): String = {
+    val addressId = entity.addressId match {
+      case Some(id) => s", $ADDRESS_ID_COL = ${id}"
+      case None => s", $ADDRESS_ID_COL = NULL"
+    }
+    s"$FIRST_NAME_COL = '${entity.firstName}', $LAST_NAME_COL = '${entity.lastName}'".concat(addressId)
+  }
+
   /**
    * Map ResultSet to User
-   * @param resultSet
+    *
+    * @param resultSet
    * @return User
    */
   def mapResultSetDomain(resultSet: ResultSet): User = {
