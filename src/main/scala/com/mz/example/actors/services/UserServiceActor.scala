@@ -1,25 +1,23 @@
 package com.mz.example.actors.services
 
-import akka.actor.{Props, ActorRef, ActorLogging, Actor}
+import akka.actor.{Actor, ActorLogging, Props}
+import akka.pattern._
 import akka.util.Timeout
-import com.mz.example.actors.common.messages.Messages.UnsupportedOperation
-import com.mz.example.actors.repositories.common.messages.{SelectById, Inserted}
-import com.mz.example.actors.repositories.UserRepositoryActor.InsertUser
+import com.mz.example.actors.common.messages.messages.UnsupportedOperation
+import com.mz.example.actors.repositories.common.messages._
 import com.mz.example.actors.services.AddressServiceActor.{AddressCreated, CreateAddress}
 import com.mz.example.actors.services.UserServiceActor._
 import com.mz.example.domains.{Address, User}
-import akka.pattern._
-import scala.concurrent.duration._
+
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Promise, Future}
+import scala.concurrent.duration._
+import scala.concurrent.{Future, Promise}
 import scala.util.{Failure, Success}
 
 /**
  * Created by zemo on 18/10/15.
  */
 class UserServiceActor(userRepProps: Props, addressServiceProps: Props) extends Actor with ActorLogging {
-
-//  import context.dispatcher
 
   private implicit val timeout: Timeout = 2000 milliseconds
 
@@ -74,7 +72,7 @@ class UserServiceActor(userRepProps: Props, addressServiceProps: Props) extends 
   private def createUser(user: User): Future[UserCreated] = {
     log.info(s"createUser first name = ${user.firstName}, last name = ${user.lastName}")
     val p = Promise[UserCreated]
-    (userRepository ? InsertUser(user)).mapTo[Inserted] onComplete {
+    (userRepository ? Insert(user)).mapTo[Inserted] onComplete {
       case Success(s) => {
         log.info("createUser - success!")
         p.success(UserCreated(s.id))
@@ -121,9 +119,8 @@ class UserServiceActor(userRepProps: Props, addressServiceProps: Props) extends 
    * @return Future[UserDeleted]
    */
   private def deleteUser(user: User): Future[UserDeleted] = {
-    import com.mz.example.actors.repositories.UserRepositoryActor.DeleteUser
     val p = Promise[UserDeleted]
-    (userRepository ? DeleteUser(user.id)).mapTo[Boolean] onComplete {
+    (userRepository ? Delete(user.id)).mapTo[Boolean] onComplete {
       case Success(success) => {
         log.info("User delete success!")
         p.success(UserDeleted())
@@ -142,9 +139,8 @@ class UserServiceActor(userRepProps: Props, addressServiceProps: Props) extends 
    * @return
    */
   private def updateUser(user: User): Future[UserUpdateResult] = {
-    import com.mz.example.actors.repositories.UserRepositoryActor.UpdateUser
     val p = Promise[UserUpdateResult]
-    (userRepository ? UpdateUser(user)).mapTo[Boolean] onComplete {
+    (userRepository ? Update(user)).mapTo[Boolean] onComplete {
       case Success(true) => {
         p.success(UserUpdated())
       }
@@ -175,8 +171,6 @@ object UserServiceActor {
 
   case class UserDeleted()
 
-  case class UserNotDeleted()
-
   case class UpdateUser(user: User)
 
   trait UserUpdateResult
@@ -184,8 +178,6 @@ object UserServiceActor {
   case class UserUpdated() extends UserUpdateResult
 
   case class UserNotUpdated() extends UserUpdateResult
-
-  case class AddAddressToUser(user: User, address: Address)
 
   case class RegistrateUser(user: User, address: Address)
 

@@ -1,13 +1,15 @@
 package com.mz.example.actors.jdbc
 
-import java.sql.{ResultSet, Statement, SQLException, Connection}
+import java.sql.{Connection, ResultSet, SQLException, Statement}
+
 import akka.actor._
-import com.mz.example.actors.jdbc.JDBCConnectionActor._
-import com.typesafe.config.Config
-import scala.concurrent.duration._
-import com.mz.example.actors.common.messages.Messages.{RetryOperation, UnsupportedOperation}
+import com.mz.example.actors.common.messages.messages.{RetryOperation, UnsupportedOperation}
 import com.mz.example.actors.factories.jdbc.DataSourceActorFactory
 import com.mz.example.actors.jdbc.DataSourceActor.{ConnectionResult, GetConnection}
+import com.mz.example.actors.jdbc.JDBCConnectionActor._
+import com.typesafe.config.Config
+
+import scala.concurrent.duration._
 
 /**
  * Created by zemi on 1. 10. 2015.
@@ -56,10 +58,10 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
       connection = Some(con)
       context.become(connectionReady)
     }
-    case opr: Insert => retryOperation(opr, sender)
-    case opr: Update => retryOperation(opr, sender)
-    case opr: Delete => retryOperation(opr, sender)
-    case Select(query, mapper) => retryOperation(Select(query, mapper), sender)
+    case opr: JdbcInsert => retryOperation(opr, sender)
+    case opr: JdbcUpdate => retryOperation(opr, sender)
+    case opr: JdbcDelete => retryOperation(opr, sender)
+    case JdbcSelect(query, mapper) => retryOperation(JdbcSelect(query, mapper), sender)
     case RetryOperation(opr, orgSender) => retryOperation(opr, orgSender)
     case UnsupportedOperation => log.debug(s"Receive => sender sent UnsupportedOperation $sender")
     case obj: Any => {
@@ -70,15 +72,15 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
 
   private def connectionReady: Receive = {
     case RetryOperation(message, senderOrg) => message match {
-      case Insert(query) => insert(query, senderOrg)
-      case Update(query) => update(query, senderOrg)
-      case Delete(query) => delete(query, senderOrg)
-      case Select(query, mapper) => select(query, mapper, senderOrg)
+      case JdbcInsert(query) => insert(query, senderOrg)
+      case JdbcUpdate(query) => update(query, senderOrg)
+      case JdbcDelete(query) => delete(query, senderOrg)
+      case JdbcSelect(query, mapper) => select(query, mapper, senderOrg)
     }
-    case Insert(query) => insert(query, sender)
-    case Update(query) => update(query, sender)
-    case Delete(query) => delete(query, sender)
-    case Select(query, mapper) =>  select(query, mapper, sender)
+    case JdbcInsert(query) => insert(query, sender)
+    case JdbcUpdate(query) => update(query, sender)
+    case JdbcDelete(query) => delete(query, sender)
+    case JdbcSelect(query, mapper) =>  select(query, mapper, sender)
     case Commit => commit
     case Rollback => rollback
     case UnsupportedOperation => log.debug(s"sender sent UnsupportedOperation $sender")
@@ -90,6 +92,7 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
 
   /**
    * in case that connection is not ready it is scheduled sneding nex same message
+ *
    * @param obj - message
    * @param orgSender - sender of original message
    */
@@ -109,6 +112,7 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
 
   /**
    * Execute select
+ *
    * @param query
    * @return
    */
@@ -117,7 +121,7 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
       log.info(s"Select query = $query")
       val prtStatement = con.prepareStatement(query)
       try {
-        senderOrg ! SelectResult(mapper(prtStatement.executeQuery()))
+        senderOrg ! JdbcSelectResult(mapper(prtStatement.executeQuery()))
       } catch {
         case e: SQLException => {
           log.error(e.getMessage, e)
@@ -131,6 +135,7 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
 
   /**
    * execute delete
+ *
    * @param query
    * @return Future
    */
@@ -141,6 +146,7 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
 
   /**
    * execute update
+ *
    * @param query
    * @return Future
    */
@@ -151,6 +157,7 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
 
   /**
    * Insert
+ *
    * @param query
    * @return
    */
@@ -295,42 +302,49 @@ object JDBCConnectionActor {
 
   /**
    * Insert statement
+ *
    * @param query
-   */
-  case class Insert(query: String)
+    */
+  case class JdbcInsert(query: String)
 
   /**
    * Update statement
+ *
    * @param query
    */
-  case class Update(query: String)
+  case class JdbcUpdate(query: String)
 
   /**
    * Delete statement
+ *
    * @param query
    */
-  case class Delete(query: String)
+  case class JdbcDelete(query: String)
 
   /**
    * Select statement
+ *
    * @param query
    */
-  case class Select[+E](query: String, mapper: ResultSet => E)
+  case class JdbcSelect[+E](query: String, mapper: ResultSet => E)
 
   /**
    * Result of select
+ *
    * @param result - E
    */
-  case class SelectResult[+E](result: E)
+  case class JdbcSelectResult[+E](result: E)
 
   /**
    * Generated key as a result after Insert
+ *
    * @param id
    */
   case class GeneratedKeyRes(id: Long)
 
   /**
    * Create Props for an actor of this type
+ *
    * @return a Props
    */
   def props: Props = Props[JDBCConnectionActor]

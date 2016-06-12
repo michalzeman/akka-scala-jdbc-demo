@@ -1,25 +1,22 @@
 package com.mz.example.actors.services
 
-import akka.actor.{ActorLogging, Actor, Props}
-import akka.util.Timeout
+import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern._
-import com.mz.example.actors.common.messages.Messages.UnsupportedOperation
-import com.mz.example.actors.repositories.AddressRepositoryActor.SelectAddress
-import com.mz.example.actors.repositories.common.messages.Inserted
-import com.mz.example.actors.services.AddressServiceActor
+import akka.util.Timeout
+import com.mz.example.actors.common.messages.messages.UnsupportedOperation
+import com.mz.example.actors.repositories.common.messages._
 import com.mz.example.actors.services.AddressServiceActor._
 import com.mz.example.domains.Address
-import scala.concurrent.{Promise, Future}
-import scala.concurrent.duration._
-import scala.util.{Failure, Success}
+
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+import scala.concurrent.{Future, Promise}
+import scala.util.{Failure, Success}
 
 /**
  * Created by zemi on 23. 10. 2015.
  */
 class AddressServiceActor(userRepProps: Props, addressRepProps: Props) extends Actor with ActorLogging {
-
-//  import context.dispatcher
 
   private implicit val timeout: Timeout = 2000 milliseconds
 
@@ -39,7 +36,7 @@ class AddressServiceActor(userRepProps: Props, addressRepProps: Props) extends A
   private def findByAllAttributes(address: Address): Future[FoundAddresses] = {
     log.debug("findByAllAttributes")
     val p = Promise[FoundAddresses]
-    (addressRepository ? SelectAddress(address)).mapTo[Seq[Address]] onComplete {
+    (addressRepository ? SelectById(address.id)).mapTo[Seq[Address]] onComplete {
       case Success(s) => {
         log.debug("findByAllAttributes - success!")
         p.success(FoundAddresses(s))
@@ -84,10 +81,9 @@ class AddressServiceActor(userRepProps: Props, addressRepProps: Props) extends A
    * @return
    */
   private def delete(address: Address): Future[AddressDeleteResult] = {
-    import com.mz.example.actors.repositories.AddressRepositoryActor.DeleteAddress
     val p = Promise[AddressDeleteResult]
     log.debug(s"delete address id = ${address.id}")
-    (addressRepository ? DeleteAddress(address.id)).mapTo[Boolean] onComplete{
+    (addressRepository ? Delete(address.id)).mapTo[Boolean] onComplete{
       case Success(true) => {
         log.debug(s"delete success with result = true")
         p.success(AddressDeleted())
@@ -110,10 +106,9 @@ class AddressServiceActor(userRepProps: Props, addressRepProps: Props) extends A
    * @return
    */
   private def update(address: Address): Future[AddressUpdateResult] = {
-    import com.mz.example.actors.repositories.AddressRepositoryActor.UpdateAddress
     log.debug("Update address")
     val p = Promise[AddressUpdateResult]
-    (addressRepository ? UpdateAddress(address)).mapTo[Boolean] onComplete {
+    (addressRepository ? Update(address)).mapTo[Boolean] onComplete {
       case Success(true) => {
         log.debug("Update address success! result true")
         p.success(AddressUpdated())
@@ -136,10 +131,9 @@ class AddressServiceActor(userRepProps: Props, addressRepProps: Props) extends A
    * @return
    */
   private def create(address: Address): Future[AddressCreated] = {
-    import com.mz.example.actors.repositories.AddressRepositoryActor.InsertAddress
     log.debug("Create address")
     val p = Promise[AddressCreated]
-    (addressRepository ? InsertAddress(address)).mapTo[Inserted] onComplete {
+    (addressRepository ? Insert(address)).mapTo[Inserted] onComplete {
       case Success(s) => {
         log.debug("Create address - success!")
         p.success(AddressCreated(s.id))
@@ -154,8 +148,6 @@ class AddressServiceActor(userRepProps: Props, addressRepProps: Props) extends A
 }
 
 object AddressServiceActor {
-
-  case class FindAddressById(id: Long)
 
   case class FindAddress(address: Address)
 

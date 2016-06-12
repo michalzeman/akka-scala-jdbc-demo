@@ -5,8 +5,12 @@ package com.mz.example
  */
 package object domains {
 
-  case class User(id: Long, firstName: String, lastName: String, addressId: Option[Long], address: Option[Address])
+  trait EntityId {
+    val id: Long
+  }
 
-  case class Address(id: Long, street: String, zip: String, houseNumber: String, city: String)
+  case class User(id: Long, firstName: String, lastName: String, addressId: Option[Long], address: Option[Address]) extends EntityId
+
+  case class Address(id: Long, street: String, zip: String, houseNumber: String, city: String) extends EntityId
 
 }

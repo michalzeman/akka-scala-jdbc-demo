@@ -2,10 +2,9 @@ package com.mz.example.actors.repositories
 
 import com.mz.example.actors.jdbc.JDBCConnectionActor._
 import com.mz.example.actors.repositories.common.AbstractRepositoryActorTest
-import com.mz.example.actors.repositories.AddressRepositoryActor.{DeleteAddress, UpdateAddress, InsertAddress}
-import com.mz.example.actors.repositories.common.messages.{SelectById, Inserted}
-import com.mz.example.actors.repositories.UserRepositoryActor.{DeleteUser, UpdateUser, InsertUser}
-import com.mz.example.domains.{Address, User}
+import com.mz.example.actors.repositories.common.messages._
+import com.mz.example.domains.Address
+
 import scala.concurrent.duration._
 
 /**
@@ -18,7 +17,7 @@ class AddressRepositoryActorTest extends AbstractRepositoryActorTest {
   test("CRUD operations") {
     val addressRepository = system.actorOf(AddressRepositoryActor.props(jdbcConActor))
     //Address(id: Long, street: String, zip: String, houseNumber: String, city: String)
-     addressRepository ! InsertAddress(Address(0, "test", "82109", "9A", "testCity"))
+     addressRepository ! Insert(Address(0, "test", "82109", "9A", "testCity"))
     val result = expectMsgType[Inserted]
     println(s"Id of inserted is ${result.id}")
     result.id should not be 0
@@ -27,14 +26,14 @@ class AddressRepositoryActorTest extends AbstractRepositoryActorTest {
     val resultSelect = expectMsgType[Some[Address]]
     resultSelect.get.street shouldBe("test")
 
-    addressRepository ! UpdateAddress(Address(result.id, "test 2", "83109", "10A", "testCityBA"))
+    addressRepository ! Update(Address(result.id, "test 2", "83109", "10A", "testCityBA"))
     expectMsg(true)
     addressRepository ! SelectById(result.id)
     val resultSelectUpdated = expectMsgType[Some[Address]]
     resultSelectUpdated.get.street shouldBe("test 2")
     resultSelectUpdated.get.zip shouldBe("83109")
 
-    addressRepository ! DeleteAddress(result.id)
+    addressRepository ! Delete(result.id)
     expectMsg(true)
 
     addressRepository ! SelectById(result.id)

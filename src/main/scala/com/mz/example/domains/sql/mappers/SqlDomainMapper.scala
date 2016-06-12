@@ -2,12 +2,24 @@ package com.mz.example.domains.sql.mappers
 
 import java.sql.ResultSet
 
-import com.mz.example.domains.User
+import com.mz.example.domains.EntityId
 
 /**
  * Created by zemo on 11/10/15.
  */
-trait SqlDomainMapper[+E] {
+trait SqlDomainMapper[E <: EntityId] {
+
+  val ID_COL = "id"
+
+  def sqlProjection: String
+
+  def tableName: String
+
+  def columns: String
+
+  def setValues(implicit entity: E): String
+
+  def values(implicit entity: E): String
 
   /**
    * Map ResultSet to Domain object
@@ -26,12 +38,6 @@ trait SqlDomainMapper[+E] {
    * @return List[E]
    */
   def mapResultSetList(resultSet: ResultSet): Seq[E] = {
-//    def mapList(restSet: ResultSet, tail:Stream[E]): Stream[E] = {
-//      if (restSet.next()) {
-//        mapResultSetDomain(restSet)#::mapList(restSet,tail)
-//      } else tail
-//    }
-//    mapList(resultSet, Stream.empty)
     val list = scala.collection.mutable.MutableList.empty[E]
     while(resultSet.next()) {
       list += mapResultSetDomain(resultSet)
