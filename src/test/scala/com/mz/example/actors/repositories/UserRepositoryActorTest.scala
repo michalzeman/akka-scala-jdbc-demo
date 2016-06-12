@@ -1,12 +1,11 @@
 package com.mz.example.actors.repositories
 
-import com.mz.example.actors.repositories.common.AbstractRepositoryActorTest
-import com.mz.example.actors.repositories.AddressRepositoryActor.InsertAddress
-import com.mz.example.actors.repositories.common.messages.{SelectAll, SelectById, Inserted}
-import com.mz.example.actors.repositories.UserRepositoryActor.{DeleteUser, UpdateUser, InsertUser}
-import com.mz.example.domains.{Address, User}
-import scala.concurrent.duration._
 import com.mz.example.actors.jdbc.JDBCConnectionActor._
+import com.mz.example.actors.repositories.common.AbstractRepositoryActorTest
+import com.mz.example.actors.repositories.common.messages._
+import com.mz.example.domains.{Address, User}
+
+import scala.concurrent.duration._
 
 /**
  * Created by zemo on 12/10/15.
@@ -18,11 +17,11 @@ class UserRepositoryActorTest extends AbstractRepositoryActorTest {
   test("CRUD operations") {
     val userRepository = system.actorOf(UserRepositoryActor.props(jdbcConActor))
     val addressRepository = system.actorOf(AddressRepositoryActor.props(jdbcConActor))
-    addressRepository ! InsertAddress(Address(0, "test", "82109", "9A", "testCity"))
+    addressRepository ! Insert(Address(0, "test", "82109", "9A", "testCity"))
     val addrIdRes:Inserted = expectMsgType[Inserted]
 
     val user = User(0, "test", "Test 2", Option(addrIdRes.id), None)
-    userRepository ! InsertUser(user)
+    userRepository ! Insert(user)
     val result: Inserted = expectMsgType[Inserted]
 
     val userSel = User(result.id, "test", "Test 2", Option(addrIdRes.id), None)
@@ -30,12 +29,12 @@ class UserRepositoryActorTest extends AbstractRepositoryActorTest {
     expectMsg(Some(userSel))
 
     val user2 = User(result.id, "UpdateTest", "UpdateTest 2", Option(addrIdRes.id), None)
-    userRepository ! UpdateUser(user2)
+    userRepository ! Update(user2)
     expectMsg(true)
     userRepository ! SelectById(result.id)
     expectMsg(Some(user2))
 
-    userRepository ! DeleteUser(result.id)
+    userRepository ! Delete(result.id)
     expectMsg(true)
     userRepository ! SelectById(result.id)
     expectMsgAnyOf(None)
@@ -45,19 +44,19 @@ class UserRepositoryActorTest extends AbstractRepositoryActorTest {
   test("Select All") {
     val userRepository = system.actorOf(UserRepositoryActor.props(jdbcConActor))
     val addressRepository = system.actorOf(AddressRepositoryActor.props(jdbcConActor))
-    addressRepository ! InsertAddress(Address(0, "test", "82109", "9A", "testCity"))
+    addressRepository ! Insert(Address(0, "test", "82109", "9A", "testCity"))
     val addrIdRes:Inserted = expectMsgType[Inserted]
 
     val user = User(0, "test", "Test 2", Option(addrIdRes.id), None)
-    userRepository ! InsertUser(user)
+    userRepository ! Insert(user)
     val result: Inserted = expectMsgType[Inserted]
 
     val user3 = User(0, "test_3", "Test 3", Option(addrIdRes.id), None)
-    userRepository ! InsertUser(user3)
+    userRepository ! Insert(user3)
     val result3: Inserted = expectMsgType[Inserted]
 
     val user4 = User(0, "test_4", "Test 4", Option(addrIdRes.id), None)
-    userRepository ! InsertUser(user4)
+    userRepository ! Insert(user4)
     val result4: Inserted = expectMsgType[Inserted]
 
     userRepository ! SelectAll

@@ -1,20 +1,20 @@
 package com.mz.example.actors.actions
 
-import com.mz.example.actors.jdbc.JDBCConnectionActor._
-import akka.actor.{ActorRef, PoisonPill, Actor, ActorLogging}
+import akka.actor.SupervisorStrategy.Stop
+import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.util.Timeout
 import com.mz.example.actors.jdbc.JDBCConnectionActor
+import com.mz.example.actors.jdbc.JDBCConnectionActor._
 import com.mz.example.actors.repositories.{AddressRepositoryActor, UserRepositoryActor}
-import com.mz.example.actors.services.UserServiceActor.{UserRegistrated, RegistrateUser}
-import com.mz.example.actors.services.{UserServiceActor, AddressServiceActor}
+import com.mz.example.actors.services.UserServiceActor.{RegistrateUser, UserRegistrated}
+import com.mz.example.actors.services.{AddressServiceActor, UserServiceActor}
+
 import scala.concurrent.duration._
 
 /**
  * Created by zemo on 27/10/15.
  */
 class UserActionActor extends Actor with ActorLogging {
-
-  import context.dispatcher
 
   val jdbcConActor = context.actorOf(JDBCConnectionActor.props)
   context.watch(jdbcConActor)
@@ -55,13 +55,16 @@ class UserActionActor extends Actor with ActorLogging {
     {
       log.debug("Registrate user - success!")
       jdbcConActor ! Commit
-      orgSender ! true
     }
     case akka.actor.Status.Failure(e) =>
     {
       log.error(e, e.getMessage)
       jdbcConActor ! Rollback
       orgSender ! e
+    }
+    case Committed => {
+      orgSender ! true
+      self ! Stop
     }
 
   }
