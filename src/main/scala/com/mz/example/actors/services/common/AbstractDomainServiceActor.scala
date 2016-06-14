@@ -27,7 +27,7 @@ abstract class AbstractDomainServiceActor[E <: EntityId](repositoryProps: Props)
     case c:Create[E] => create(c.entity) pipeTo sender
     case FindById(id) => findById(id) pipeTo sender
     case d:Delete[E] => delete(d.entity) pipeTo sender
-    case Update(entity:E)  => update(entity) pipeTo sender
+    case u:Update[E]  => update(u.entity) pipeTo sender
     case _ => sender ! UnsupportedOperation
   }
 

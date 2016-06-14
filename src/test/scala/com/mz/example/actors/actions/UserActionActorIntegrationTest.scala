@@ -1,6 +1,7 @@
 package com.mz.example.actors.actions
 
 import akka.actor.{ActorSystem, PoisonPill, Props}
+import akka.pattern._
 import akka.testkit.{ImplicitSender, TestKit}
 import com.mz.example.actors.services.UserServiceActor.RegistrateUser
 import com.mz.example.actors.supervisors.DataSourceSupervisorActor
@@ -9,6 +10,7 @@ import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfterAll, FunSuiteLike, Matchers}
 import org.scalautils.ConversionCheckedTripleEquals
 
+import scala.concurrent.Await
 import scala.concurrent.duration._
 
 /**
@@ -26,18 +28,18 @@ with MockitoSugar {
 
   val dataSourceSupervisor = system.actorOf(DataSourceSupervisorActor.props, DataSourceSupervisorActor.actorName)
 
-//  test("Registrate user") {
-//    val futures =
-//      for (i <- 1 to 10000) yield {
-//        Thread sleep 2
-//        val userAction = system.actorOf(Props[UserActionActor])
-//        (userAction ? RegistrateUser(User(0, "FirstNameTest", "LastNameTest", None, None),
-//          Address(0, "test", "82109", "9A", "testCity")))
-//      }
-//
-//    for {future <- futures} yield Await.result(future, 1 minutes)
-//
-//  }
+  test("Registrate user") {
+    val futures =
+      for (i <- 1 to 10000) yield {
+        Thread sleep 2
+        val userAction = system.actorOf(Props[UserActionActor])
+        (userAction ? RegistrateUser(User(0, "FirstNameTest", "LastNameTest", None, None),
+          Address(0, "test", "82109", "9A", "testCity")))
+      }
+
+    for {future <- futures} yield Await.result(future, 1 minutes)
+
+  }
 
   test("Parent acotr stop") {
     val userAction = system.actorOf(Props[UserActionActor])

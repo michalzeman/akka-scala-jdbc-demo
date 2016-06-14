@@ -2,7 +2,6 @@ package com.mz.example.actors.services
 
 import akka.actor.Props
 import akka.pattern._
-import com.mz.example.actors.services.AddressServiceActor.{AddressCreated, CreateAddress}
 import com.mz.example.actors.services.UserServiceActor._
 import com.mz.example.actors.services.common.AbstractDomainServiceActor
 import com.mz.example.actors.services.messages._
@@ -34,7 +33,7 @@ class UserServiceActor(userRepProps: Props, addressServiceProps: Props) extends 
   private def registrateUser(user: User, address: Address): Future[UserRegistrated] = {
     log.info("registrateUser ->")
     val p = Promise[UserRegistrated]
-    (addressService ? CreateAddress(address)).mapTo[AddressCreated].onComplete {
+    (addressService ? Create(address)).mapTo[Created].onComplete {
       case Success(s) =>
         (self ? Create(User(0, user.firstName, user.lastName, Some(s.id), None)))
           .mapTo[Created].onComplete  {
