@@ -4,7 +4,8 @@ import akka.actor.{ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import com.mz.example.actors.jdbc.JDBCConnectionActor._
 import com.mz.example.actors.repositories.{AddressRepositoryActor, UserRepositoryActor}
-import com.mz.example.actors.services.AddressServiceActor._
+import com.mz.example.actors.services.AddressServiceActor.FindOrCreateAddress
+import com.mz.example.actors.services.messages._
 import com.mz.example.domains.Address
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfterAll, FunSuiteLike, Matchers}
@@ -29,10 +30,10 @@ with MockitoSugar {
     val addressRepository = Props(new AddressRepositoryActor(jdbcConA.ref))
     val addressService = system.actorOf(AddressServiceActor.props(userRepository, addressRepository))
     //street: String, zip: String, houseNumber: String, city: String
-    addressService ! CreateAddress(Address(0, "StreetCreate", "zipCreate", "houseNumCreate", "CityCreate"))
+    addressService ! Create(Address(0, "StreetCreate", "zipCreate", "houseNumCreate", "CityCreate"))
     jdbcConA.expectMsgType[JdbcInsert]
     jdbcConA.reply(GeneratedKeyRes(999))
-    expectMsgAnyOf(AddressCreated(999))
+    expectMsgAnyOf(Created(999))
   }
 
   test("2. delete address") {
@@ -40,10 +41,10 @@ with MockitoSugar {
     val userRepository = Props(new UserRepositoryActor(jdbcConA.ref))
     val addressRepository = Props(new AddressRepositoryActor(jdbcConA.ref))
     val addressService = system.actorOf(AddressServiceActor.props(userRepository, addressRepository))
-    addressService ! DeleteAddress(Address(12, "Street_Find", "zip_Find", "houseNum_Find", "City_Find"))
+    addressService ! Delete(Address(12, "Street_Find", "zip_Find", "houseNum_Find", "City_Find"))
     jdbcConA.expectMsgType[JdbcDelete]
     jdbcConA.reply(true)
-    expectMsgType[AddressDeleted]
+    expectMsgType[Deleted]
   }
 
   test("3. Find address by all attributes") {
@@ -51,10 +52,10 @@ with MockitoSugar {
     val userRepository = Props(new UserRepositoryActor(jdbcConA.ref))
     val addressRepository = Props(new AddressRepositoryActor(jdbcConA.ref))
     val addressService = system.actorOf(AddressServiceActor.props(userRepository, addressRepository))
-    addressService ! FindAddress(Address(0, "StreetFind", "zipFind", "houseNumFind", "CityFind"))
+    addressService ! FindById(0)
     jdbcConA.expectMsgType[JdbcSelect[Address]]
-    jdbcConA.reply(JdbcSelectResult(List[Address](Address(3, "StreetFind", "zipFind", "houseNumFind", "CityFind"))))
-    expectMsgType[FoundAddresses]
+    jdbcConA.reply(JdbcSelectResult[Option[Address]](Some(Address(3, "StreetFind", "zipFind", "houseNumFind", "CityFind"))))
+    expectMsgType[Found[Address]]
   }
 
   test("4. Find or create address - create") {
@@ -64,12 +65,15 @@ with MockitoSugar {
     val addressService = system.actorOf(AddressServiceActor.props(userRepository, addressRepository))
     addressService ! FindOrCreateAddress(Address(0, "Street_Find", "zip_Find", "houseNum_Find", "City_Find"))
     jdbcConA.expectMsgType[JdbcSelect[Address]]
-    val addressResList:Seq[Address] = mutable.MutableList.empty
-    jdbcConA.reply(JdbcSelectResult(addressResList))
+//    jdbcConA.reply(JdbcSelectResult[Option[Address]](Some(Address(3, "StreetFind", "zipFind", "houseNumFind", "CityFind"))))
+    jdbcConA.reply(JdbcSelectResult(None))
     jdbcConA.expectMsgType[JdbcInsert]
     jdbcConA.reply(GeneratedKeyRes(12))
-    val addresses = mutable.MutableList(Address(12, "Street_Find", "zip_Find", "houseNum_Find", "City_Find"))
-    expectMsgAllOf(FoundAddresses(addresses))
+    val address = Address(12, "Street_Find", "zip_Find", "houseNum_Find", "City_Find")
+    jdbcConA.expectMsgType[JdbcSelect[Address]]
+    jdbcConA.reply(JdbcSelectResult(Some(address)))
+    val addresses = mutable.MutableList(address)
+    expectMsgAllOf(Found(addresses))
   }
 
   test("5. Find or create address - find") {
@@ -77,12 +81,12 @@ with MockitoSugar {
     val userRepository = Props(new UserRepositoryActor(jdbcConA.ref))
     val addressRepository = Props(new AddressRepositoryActor(jdbcConA.ref))
     val addressService = system.actorOf(AddressServiceActor.props(userRepository, addressRepository))
-    addressService ! FindOrCreateAddress(Address(0, "Street_Find", "zip_Find", "houseNum_Find", "City_Find"))
+    addressService ! FindOrCreateAddress(Address(12, "Street_Find", "zip_Find", "houseNum_Find", "City_Find"))
     jdbcConA.expectMsgType[JdbcSelect[Address]]
-    val addressResList:Seq[Address] = mutable.MutableList(Address(12, "Street_Find", "zip_Find", "houseNum_Find", "City_Find"))
-    jdbcConA.reply(JdbcSelectResult(addressResList))
+    val address = Address(12, "Street_Find", "zip_Find", "houseNum_Find", "City_Find")
+    jdbcConA.reply(JdbcSelectResult(Some(address)))
     val addresses = mutable.MutableList(Address(12, "Street_Find", "zip_Find", "houseNum_Find", "City_Find"))
-    expectMsgAllOf(FoundAddresses(addresses))
+    expectMsgAllOf(Found(addresses))
   }
 
 }

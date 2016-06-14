@@ -71,9 +71,9 @@ abstract class AbstractRepositoryActor[E <: EntityId](jdbcActor: ActorRef)
     log.debug(s"${getClass.getCanonicalName} going to selectId id = "+Thread.currentThread().getId())
     (jdbcActor ? JdbcSelect(s"select $sqlProjection " +
       s"from $tableName where $ID_COL = $id", mapResultSet)).mapTo[JdbcSelectResult[Option[E]]] onComplete {
-      case Success(result) => {
+      case Success(s) => {
         log.debug(s"${getClass.getCanonicalName} future execution of selectById id = "+Thread.currentThread().getId())
-        p.success(result.result)
+        p.success(s.result)
       }
       case Failure(f) => {
         log.error(f, f.getMessage)
