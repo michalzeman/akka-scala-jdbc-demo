@@ -3,7 +3,6 @@ package com.mz.training.domains.user
 import java.sql.ResultSet
 
 import com.mz.training.common.mappers.SqlDomainMapper
-import com.mz.training.domains.user.User
 
 /**
  * Created by zemo on 11/10/15.

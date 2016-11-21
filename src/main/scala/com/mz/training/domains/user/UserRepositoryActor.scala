@@ -2,7 +2,6 @@ package com.mz.training.domains.user
 
 import akka.actor.{ActorRef, Props}
 import com.mz.training.common.repositories.AbstractRepositoryActor
-import com.mz.training.domains.user.User
 
 /**
   * Created by zemi on 8. 10. 2015.

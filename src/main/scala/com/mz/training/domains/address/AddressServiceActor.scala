@@ -4,7 +4,6 @@ import akka.actor.Props
 import akka.pattern._
 import com.mz.training.common._
 import com.mz.training.common.services.AbstractDomainServiceActor
-import com.mz.training.domains.address.Address
 import com.mz.training.domains.address.AddressServiceActor.FindOrCreateAddress
 
 import scala.concurrent.ExecutionContext.Implicits.global

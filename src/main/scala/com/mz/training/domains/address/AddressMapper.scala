@@ -2,7 +2,6 @@ package com.mz.training.domains.address
 
 import java.sql.ResultSet
 
-import com.mz.training.domains.address.Address
 import com.mz.training.common.mappers.SqlDomainMapper
 
 /**

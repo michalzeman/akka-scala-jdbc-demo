@@ -2,7 +2,6 @@ package com.mz.training.domains.address
 
 import akka.actor.{ActorRef, Props}
 import com.mz.training.common.repositories.AbstractRepositoryActor
-import com.mz.training.domains.address.Address
 
 
 /**

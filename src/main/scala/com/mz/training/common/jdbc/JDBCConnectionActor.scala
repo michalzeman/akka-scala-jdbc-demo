@@ -3,10 +3,10 @@ package com.mz.training.common.jdbc
 import java.sql.{Connection, ResultSet, SQLException, Statement}
 
 import akka.actor._
-import com.mz.training.common.messages.{RetryOperation, UnsupportedOperation}
 import com.mz.training.common.factories.jdbc.DataSourceActorFactory
 import com.mz.training.common.jdbc.DataSourceActor.{ConnectionResult, GetConnection}
 import com.mz.training.common.jdbc.JDBCConnectionActor._
+import com.mz.training.common.messages.{RetryOperation, UnsupportedOperation}
 import com.typesafe.config.Config
 
 import scala.concurrent.duration._

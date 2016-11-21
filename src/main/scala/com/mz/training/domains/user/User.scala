@@ -1,7 +1,7 @@
 package com.mz.training.domains.user
 
-import com.mz.training.domains.address.Address
 import com.mz.training.domains.EntityId
+import com.mz.training.domains.address.Address
 
 /**
   * Created by zemi on 10/08/16.

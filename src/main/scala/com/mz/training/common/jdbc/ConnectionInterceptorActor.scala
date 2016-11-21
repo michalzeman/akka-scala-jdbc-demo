@@ -1,7 +1,7 @@
 package com.mz.training.common.jdbc
 
 import akka.actor._
-import com.mz.training.common.jdbc.DataSourceActor.{GetConnection}
+import com.mz.training.common.jdbc.DataSourceActor.GetConnection
 
 import scala.concurrent.duration._
 

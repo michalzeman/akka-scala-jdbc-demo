@@ -5,8 +5,8 @@ import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.util.Timeout
 import com.mz.training.common.jdbc.JDBCConnectionActor
 import com.mz.training.common.jdbc.JDBCConnectionActor.{Commit, Committed, Rollback}
-import com.mz.training.domains.user.UserServiceActor.{RegistrateUser, UserRegistrated}
 import com.mz.training.domains.address.{AddressRepositoryActor, AddressServiceActor}
+import com.mz.training.domains.user.UserServiceActor.{RegistrateUser, UserRegistrated}
 import com.mz.training.domains.user.{UserRepositoryActor, UserServiceActor}
 
 import scala.concurrent.duration._
