@@ -58,10 +58,10 @@ abstract class AbstractRepositoryActor[E <: EntityId](jdbcActor: ActorRef)
     */
   private def selectById(id: Long): Future[Option[E]] = {
     log.debug(s"${getClass.getCanonicalName} going to selectId id = "+Thread.currentThread().getId())
-    (jdbcActor ? JdbcSelect(s"select $sqlProjection " +
-          s"from $tableName where $ID_COL = $id", mapResultSet)).mapTo[JdbcSelectResult[Option[E]]].map(result => {
-      log.debug(s"${getClass.getCanonicalName} future execution of selectById id = "+Thread.currentThread().getId())
-      result.result
+    (jdbcActor ? JdbcSelect(s"select $sqlProjection from $tableName where $ID_COL = $id", mapResultSet))
+      .mapTo[JdbcSelectResult[Option[E]]].map(result => {
+        log.debug(s"${getClass.getCanonicalName} future execution of selectById id = "+Thread.currentThread().getId())
+        result.result
     })
   }
 

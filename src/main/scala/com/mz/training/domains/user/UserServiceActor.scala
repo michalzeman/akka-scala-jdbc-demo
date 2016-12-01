@@ -7,12 +7,11 @@ import com.mz.training.common.services.AbstractDomainServiceActor
 import com.mz.training.domains.address.Address
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Future, Promise}
-import scala.util.{Failure, Success}
+import scala.concurrent.Future
 
 /**
- * Created by zemo on 18/10/15.
- */
+  * Created by zemo on 18/10/15.
+  */
 class UserServiceActor(userRepProps: Props, addressServiceProps: Props) extends AbstractDomainServiceActor[User](userRepProps) {
 
   import UserServiceActor._
@@ -33,26 +32,14 @@ class UserServiceActor(userRepProps: Props, addressServiceProps: Props) extends 
 
   private def registrateUser(user: User, address: Address): Future[UserRegistrated] = {
     log.info("registrateUser ->")
-    val p = Promise[UserRegistrated]
-    (addressService ? services.Create(address)).mapTo[services.Created].onComplete {
-      case Success(s) =>
-        (self ? services.Create(User(0, user.firstName, user.lastName, Some(s.id), None)))
-          .mapTo[services.Created].onComplete  {
-          case Success(s) => {
-            log.debug("registrateUser - success!")
-            p.success(UserRegistrated())
-          }
-          case Failure(f) => {
-            log.error(f, f.getMessage)
-            p.failure(f)
-          }
-        }
-      case Failure(f) => {
-        log.error(f, f.getMessage)
-        p.failure(f)
-      }
-    }
-    p.future
+    val createAddressFuture = (addressService ? services.Create(address)).mapTo[services.Created]
+    val createUserFuture = createAddressFuture.flatMap(created =>
+      (self ? services.Create(User(0, user.firstName, user.lastName, Some(created.id), None))).mapTo[services.Created])
+
+    createUserFuture.map(result => {
+      log.debug("registrateUser - success!")
+      UserRegistrated()
+    })
   }
 
 }
@@ -64,10 +51,11 @@ object UserServiceActor {
   case class UserRegistrated()
 
   /**
-   * Create Props
-   * @param userRepProps
-   * @param addressServiceProps
-   * @return Props
-   */
+    * Create Props
+    *
+    * @param userRepProps
+    * @param addressServiceProps
+    * @return Props
+    */
   def props(userRepProps: Props, addressServiceProps: Props): Props = Props(classOf[UserServiceActor], userRepProps, addressServiceProps)
 }
