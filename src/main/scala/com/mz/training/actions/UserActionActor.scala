@@ -33,23 +33,6 @@ class UserActionActor extends Actor with ActorLogging {
     case RegistrateUser(user, address) => {
       orgSender = sender
       userService ! RegistrateUser(user, address)
-      //      val p = Promise[Boolean]
-      //      (userService ? RegistrateUser(user, address))
-      //        .mapTo[UserRegistrated] onComplete {
-      //        case Success(s) => {
-      //          log.debug("Registrate user - success!")
-      //          jdbcConActor ! Commit
-      //          p.success(true)
-      //        }
-      //        case Failure(f) => {
-      //          log.error(f, f.getMessage)
-      //          p.failure(f)
-      //          jdbcConActor ! Rollback
-      //          self ! PoisonPill
-      //        }
-      //      }
-      //      p.future pipeTo sender
-      //    }
     }
     case UserRegistrated() =>
     {

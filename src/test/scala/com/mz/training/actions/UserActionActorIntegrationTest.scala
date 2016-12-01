@@ -12,6 +12,7 @@ import org.scalatest.{BeforeAndAfterAll, FunSuiteLike, Matchers}
 import org.scalautils.ConversionCheckedTripleEquals
 
 import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 /**
@@ -35,7 +36,10 @@ with MockitoSugar {
         Thread sleep 2
         val userAction = system.actorOf(Props[UserActionActor])
         (userAction ? RegistrateUser(User(0, "FirstNameTest", "LastNameTest", None, None),
-          Address(0, "test", "82109", "9A", "testCity")))
+          Address(0, "test", "82109", "9A", "testCity"))).map(result => {
+          userAction ! PoisonPill
+          result
+        })
       }
 
     for {future <- futures} yield Await.result(future, 1 minutes)
