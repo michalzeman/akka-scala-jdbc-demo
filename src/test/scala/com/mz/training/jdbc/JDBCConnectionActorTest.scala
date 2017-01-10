@@ -8,9 +8,7 @@ import com.mz.training.common.jdbc.JDBCConnectionActor
 import com.mz.training.common.jdbc.JDBCConnectionActor.{JdbcSelect, JdbcSelectResult}
 import com.mz.training.common.supervisors.DataSourceSupervisorActor
 import com.mz.training.domains.user.User
-import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfterAll, FunSuiteLike, Matchers}
-import org.scalautils.ConversionCheckedTripleEquals
 
 import scala.concurrent.duration._
 
@@ -20,9 +18,7 @@ import scala.concurrent.duration._
 class JDBCConnectionActorTest extends TestKit(ActorSystem("test-jdbc-demo-JDBCConnectionActorTest")) with FunSuiteLike
 with BeforeAndAfterAll
 with Matchers
-with ConversionCheckedTripleEquals
-with ImplicitSender
-with MockitoSugar {
+with ImplicitSender {
 
   implicit val timeOut: akka.util.Timeout = 2000.millisecond
 

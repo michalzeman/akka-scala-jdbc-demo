@@ -9,9 +9,7 @@ import com.mz.training.common.supervisors.DataSourceSupervisorActor
 import com.mz.training.domains.address.{Address, AddressRepositoryActor, AddressServiceActor}
 import com.mz.training.domains.user.UserServiceActor.{RegistrateUser, UserRegistrated}
 import com.mz.training.domains.user.{User, UserRepositoryActor, UserServiceActor}
-import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfterAll, FunSuiteLike, Matchers}
-import org.scalautils.ConversionCheckedTripleEquals
 
 import scala.concurrent.duration._
 
@@ -22,9 +20,8 @@ class UserServiceActorIntegrationTest extends TestKit(ActorSystem("test-jdbc-dem
 with FunSuiteLike
 with BeforeAndAfterAll
 with Matchers
-with ConversionCheckedTripleEquals
 with ImplicitSender
-with MockitoSugar {
+{
 
   implicit val timeOut: akka.util.Timeout = 10000.millisecond
 
