@@ -7,9 +7,7 @@ import com.mz.training.common.services._
 import com.mz.training.domains.address.AddressServiceActor.FindOrCreateAddress
 import com.mz.training.domains.address.{Address, AddressRepositoryActor, AddressServiceActor}
 import com.mz.training.domains.user.UserRepositoryActor
-import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfterAll, FunSuiteLike, Matchers}
-import org.scalautils.ConversionCheckedTripleEquals
 
 import scala.collection.mutable
 
@@ -20,9 +18,7 @@ class AddressServiceActorTest extends TestKit(ActorSystem("test-jdbc-demo-Addres
 with FunSuiteLike
 with BeforeAndAfterAll
 with Matchers
-with ConversionCheckedTripleEquals
-with ImplicitSender
-with MockitoSugar {
+with ImplicitSender {
 
   test("1. Create address") {
     val jdbcConA = TestProbe()

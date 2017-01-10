@@ -45,7 +45,7 @@ class DataSourceActor extends Actor with ActorLogging {
     config.setIdleTimeout(TimeUnit.SECONDS.toMillis(10))
     config.setValidationTimeout(TimeUnit.SECONDS.toMillis(sysConfig.getInt(DATASOURCE_VALIDATIONTIMEOUT)))
     config.setJdbcUrl(sysConfig.getString(CONNECTION_URL))
-    config.setUsername(sysConfig.getString(DB_USER));
+    config.setUsername(sysConfig.getString(DB_USER))
     config.setPassword(sysConfig.getString(DB_PASSWORD))
     config.setAutoCommit(sysConfig.getBoolean(DATASOURCE_AUTOCOMMIT))
     config
@@ -109,5 +109,5 @@ object DataSourceActor {
     * @return a Props
     */
   //  def props: Props = FromConfig.props(Props[DataSourceActor])
-  def props: Props = Props[DataSourceActor]
+  def props: Props = Props[DataSourceActor].withDispatcher("akka.dataSource-dispatcher")
 }
