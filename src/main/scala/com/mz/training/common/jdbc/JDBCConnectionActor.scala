@@ -3,21 +3,20 @@ package com.mz.training.common.jdbc
 import java.sql.{Connection, ResultSet, SQLException, Statement}
 
 import akka.actor._
+import com.mz.training.common.messages.UnsupportedOperation
 import com.mz.training.common.factories.jdbc.DataSourceActorFactory
 import com.mz.training.common.jdbc.DataSourceActor.{ConnectionResult, GetConnection}
 import com.mz.training.common.jdbc.JDBCConnectionActor._
-import com.mz.training.common.messages.{RetryOperation, UnsupportedOperation}
 import com.typesafe.config.Config
 
 import scala.concurrent.duration._
 
 /**
- * Created by zemi on 1. 10. 2015.
- */
-class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFactory {
+  * Created by zemi on 1. 10. 2015.
+  */
+class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFactory with Stash {
 
   import DataSourceActor.SCHEMA
-  import context.dispatcher
 
   private val sysConfig: Config = context.system.settings.config
   private val defaultSchema = sysConfig.getString(SCHEMA)
@@ -29,8 +28,8 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
 
   @throws[RuntimeException](classOf[RuntimeException])
   override def preStart(): Unit = {
-//    log.info("init of Actor")
-//    askForConnection
+    //    log.info("init of Actor")
+    //    askForConnection
   }
 
   override def receive: Receive = {
@@ -42,10 +41,10 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
   }
 
   private def connectionClosed: Receive = {
-    case RetryOperation(opr, orgSender) => retryOperation(opr, orgSender)
+    //    case RetryOperation(opr, orgSender) => retryOperation(opr, orgSender)
     case obj: Any => {
       log.info(s"Connection is closed! Going to ask new connection!")
-      retryOperation(obj, sender)
+      //      retryOperation(obj, sender)
       askForConnection
     }
   }
@@ -56,14 +55,9 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
       conInterceptorActor ! ActorStop
       con.setSchema(defaultSchema)
       connection = Some(con)
+      unstashAll()
       context.become(connectionReady)
     }
-    case opr: JdbcInsert => retryOperation(opr, sender)
-    case opr: JdbcUpdate => retryOperation(opr, sender)
-    case opr: JdbcDelete => retryOperation(opr, sender)
-    case JdbcSelect(query, mapper) => retryOperation(JdbcSelect(query, mapper), sender)
-    case RetryOperation(opr, orgSender) => retryOperation(opr, orgSender)
-    case UnsupportedOperation => log.debug(s"Receive => sender sent UnsupportedOperation $sender")
     case obj: Any => {
       log.warning(s"receive => Unsupported operation object ${obj.getClass}")
       sender() ! UnsupportedOperation
@@ -71,12 +65,6 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
   }
 
   private def connectionReady: Receive = {
-    case RetryOperation(message, senderOrg) => message match {
-      case JdbcInsert(query) => insert(query, senderOrg)
-      case JdbcUpdate(query) => update(query, senderOrg)
-      case JdbcDelete(query) => delete(query, senderOrg)
-      case JdbcSelect(query, mapper) => select(query, mapper, senderOrg)
-    }
     case JdbcInsert(query) => insert(query, sender)
     case JdbcUpdate(query) => update(query, sender)
     case JdbcDelete(query) => delete(query, sender)
@@ -91,31 +79,22 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
   }
 
   /**
-   * in case that connection is not ready it is scheduled sneding nex same message
- *
-   * @param obj - message
-   * @param orgSender - sender of original message
-   */
-  def retryOperation(obj: Any, orgSender: ActorRef): Unit = {
-    context.system.scheduler.scheduleOnce(
-      9.millisecond, self, RetryOperation(obj, orgSender))
-  }
-
-  /**
-   * Ask for new connection from DataSourceActor
-   */
+    * Ask for new connection from DataSourceActor
+    */
   private def askForConnection: Unit = {
+    log.info(s"${getClass.getCanonicalName} askForConnection ->")
+    stash()
     context.become(waitingForConnection)
     selectDataSourceActor ! GetConnection
     conInterceptorActor ! GetConnection
   }
 
   /**
-   * Execute select
- *
-   * @param query
-   * @return
-   */
+    * Execute select
+    *
+    * @param query
+    * @return
+    */
   private def select[E](query: String, mapper: ResultSet => E, senderOrg: ActorRef): Unit = {
     connection.map(con => {
       log.info(s"Select query = $query")
@@ -134,33 +113,33 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
   }
 
   /**
-   * execute delete
- *
-   * @param query
-   * @return Future
-   */
+    * execute delete
+    *
+    * @param query
+    * @return Future
+    */
   private def delete(query: String, senderOrg: ActorRef): Unit = {
     log.info(s"Delete query = $query")
     executeUpdate(query, senderOrg)
   }
 
   /**
-   * execute update
- *
-   * @param query
-   * @return Future
-   */
+    * execute update
+    *
+    * @param query
+    * @return Future
+    */
   private def update(query: String, senderOrg: ActorRef): Unit = {
     log.info(s"Update query = $query")
     executeUpdate(query, senderOrg)
   }
 
   /**
-   * Insert
- *
-   * @param query
-   * @return
-   */
+    * Insert
+    *
+    * @param query
+    * @return
+    */
   private def insert(query: String, senderOrg: ActorRef): Unit = {
     connection.map(con => {
       log.info(s"Insert query = $query")
@@ -186,8 +165,8 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
   }
 
   /**
-   * Execute Commit
-   */
+    * Execute Commit
+    */
   private def commit: Unit = {
     log.debug("JDBCConnectionActor.Commit")
     connection.map(con => {
@@ -211,8 +190,8 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
   }
 
   /**
-   * execute rollback
-   */
+    * execute rollback
+    */
   private def rollback: Unit = {
     log.debug("JDBCConnectionActor.Rollback")
     connection.map(con => {
@@ -271,81 +250,81 @@ class JDBCConnectionActor extends Actor with ActorLogging with DataSourceActorFa
 }
 
 /**
- * Companion object
- */
+  * Companion object
+  */
 object JDBCConnectionActor {
 
   /**
-   *
-   */
+    *
+    */
   case class InitConnection(actor: ActorRef)
 
   /**
-   * message for commit transaction
-   */
+    * message for commit transaction
+    */
   case object Commit
 
   /**
-   * confirmation message for successful commit
-   */
+    * confirmation message for successful commit
+    */
   case object Committed
 
   /**
-   * message for rollback transaction
-   */
+    * message for rollback transaction
+    */
   case object Rollback
 
   /**
-   * confirmation message for successful rollback
-   */
+    * confirmation message for successful rollback
+    */
   case object RollbackSuccess
 
   /**
-   * Insert statement
- *
-   * @param query
+    * Insert statement
+    *
+    * @param query
     */
   case class JdbcInsert(query: String)
 
   /**
-   * Update statement
- *
-   * @param query
-   */
+    * Update statement
+    *
+    * @param query
+    */
   case class JdbcUpdate(query: String)
 
   /**
-   * Delete statement
- *
-   * @param query
-   */
+    * Delete statement
+    *
+    * @param query
+    */
   case class JdbcDelete(query: String)
 
   /**
-   * Select statement
- *
-   * @param query
-   */
+    * Select statement
+    *
+    * @param query
+    */
   case class JdbcSelect[+E](query: String, mapper: ResultSet => E)
 
   /**
-   * Result of select
- *
-   * @param result - E
-   */
+    * Result of select
+    *
+    * @param result - E
+    */
   case class JdbcSelectResult[+E](result: E)
 
   /**
-   * Generated key as a result after Insert
- *
-   * @param id
-   */
+    * Generated key as a result after Insert
+    *
+    * @param id
+    */
   case class GeneratedKeyRes(id: Long)
 
   /**
-   * Create Props for an actor of this type
- *
-   * @return a Props
-   */
+    * Create Props for an actor of this type
+    *
+    * @return a Props
+    */
   def props: Props = Props[JDBCConnectionActor]
 }
