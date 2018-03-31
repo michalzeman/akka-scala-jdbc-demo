@@ -4,7 +4,7 @@ SET SCHEMA 'akkademo';
 
 DROP SCHEMA IF EXISTS akkademo CASCADE;
 
-CREATE SCHEMA akkademo AUTHORIZATION postgres;
+CREATE SCHEMA akkademo AUTHORIZATION developer;
 
 CREATE TABLE users (
   id  bigserial NOT NULL,

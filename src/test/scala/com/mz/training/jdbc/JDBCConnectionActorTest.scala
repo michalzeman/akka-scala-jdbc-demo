@@ -23,15 +23,7 @@ with ImplicitSender {
   implicit val timeOut: akka.util.Timeout = 2000.millisecond
 
   override def afterAll(): Unit = {
-    system.shutdown()
-  }
-
-  test("GetConnection timeout") {
-    val jdbcActor = system.actorOf(JDBCConnectionActor.props)
-    val query = "Select from users where id = 0"
-    def mapper (resultSet: ResultSet): Option[User] = {None}
-    jdbcActor ! JdbcSelect(query, mapper)
-    expectNoMsg(2 seconds)
+    system.terminate()
   }
 
   test("select operation") {
